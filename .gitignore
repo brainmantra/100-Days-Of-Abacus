@@ -27,5 +27,3 @@ dist-ssr
 .env
 api/.env
 google-credentials.json
-.vercel
-.env*
