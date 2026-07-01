@@ -12,35 +12,60 @@
  */
 
 export const LEVELS = [
-  { id: 'beginner', label: 'Beginner', description: 'Levels 1–2 · Ages 5–7' },
-  { id: 'elementary', label: 'Elementary', description: 'Levels 3–4 · Ages 7–9' },
-  { id: 'intermediate', label: 'Intermediate', description: 'Levels 5–6 · Ages 9–11' },
-  { id: 'advanced', label: 'Advanced', description: 'Levels 7–8 · Ages 11+' },
-  { id: 'expert', label: 'Expert', description: 'Levels 9–10 · Masters' },
+  { id: '1', label: '1', description: 'Levels 1–2 · Ages 5–7' },
+  { id: '2', label: '2', description: 'Levels 1–2 · Ages 5–7' },
+  { id: '3', label: '3', description: 'Levels 3–4 · Ages 7–9' },
+  { id: '4', label: '4', description: 'Levels 3–4 · Ages 7–9' },
+  { id: '5', label: '5', description: 'Levels 5–6 · Ages 9–11' },
+  { id: '6', label: '6', description: 'Levels 5–6 · Ages 9–11' },
+  { id: '7', label: '7', description: 'Levels 7–8 · Ages 11+' },
+  { id: '8', label: '8', description: 'Levels 7–8 · Ages 11+' },
+  { id: '9', label: '9', description: 'Levels 9–10 · Masters' },
+  { id: '10', label: '10', description: 'Levels 9–10 · Masters' },
 ]
 
 // ─── REPLACE THESE URLS WITH YOUR ACTUAL GOOGLE FORM EMBED URLS ────────────
 export const FORM_CONFIG = {
-  beginner: {
-    defaultFormUrl: 'https://docs.google.com/forms/d/e/YOUR_BEGINNER_FORM_ID/viewform?embedded=true',
+  '1': {
+    defaultFormUrl: 'https://docs.google.com/forms/d/e/YOUR_LEVEL_1_FORM_ID/viewform?embedded=true',
     days: {
       // Override for specific days: 1: 'https://...',
     }
   },
-  elementary: {
-    defaultFormUrl: 'https://docs.google.com/forms/d/e/YOUR_ELEMENTARY_FORM_ID/viewform?embedded=true',
+  '2': {
+    defaultFormUrl: 'https://docs.google.com/forms/d/e/YOUR_LEVEL_2_FORM_ID/viewform?embedded=true',
     days: {}
   },
-  intermediate: {
-    defaultFormUrl: 'https://docs.google.com/forms/d/e/YOUR_INTERMEDIATE_FORM_ID/viewform?embedded=true',
+  '3': {
+    defaultFormUrl: 'https://docs.google.com/forms/d/e/YOUR_LEVEL_3_FORM_ID/viewform?embedded=true',
     days: {}
   },
-  advanced: {
-    defaultFormUrl: 'https://docs.google.com/forms/d/e/YOUR_ADVANCED_FORM_ID/viewform?embedded=true',
+  '4': {
+    defaultFormUrl: 'https://docs.google.com/forms/d/e/YOUR_LEVEL_4_FORM_ID/viewform?embedded=true',
     days: {}
   },
-  expert: {
-    defaultFormUrl: 'https://docs.google.com/forms/d/e/YOUR_EXPERT_FORM_ID/viewform?embedded=true',
+  '5': {
+    defaultFormUrl: 'https://docs.google.com/forms/d/e/YOUR_LEVEL_5_FORM_ID/viewform?embedded=true',
+    days: {}
+  },
+  '6': {
+    defaultFormUrl: 'https://docs.google.com/forms/d/e/YOUR_LEVEL_6_FORM_ID/viewform?embedded=true',
+    days: {}
+  },
+  '7': {
+    defaultFormUrl: 'https://docs.google.com/forms/d/e/YOUR_LEVEL_7_FORM_ID/viewform?embedded=true',
+    days: {}
+  },
+  '8': {
+    defaultFormUrl: 'https://docs.google.com/forms/d/e/YOUR_LEVEL_8_FORM_ID/viewform?embedded=true',
+    days: {}
+  },
+  '9': {
+    defaultFormUrl: 'https://docs.google.com/forms/d/e/YOUR_LEVEL_9_FORM_ID/viewform?embedded=true',
+    days: {}
+  },
+  '10': {
+    defaultFormUrl: 'https://docs.google.com/forms/d/e/YOUR_LEVEL_10_FORM_ID/viewform?embedded=true',
     days: {}
   },
 }

@@ -1,0 +1,66 @@
+.streak-corner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(135deg, #2a1810, #3d2412);
+  border-radius: var(--radius-lg);
+  padding: 18px 22px;
+  position: relative;
+  overflow: hidden;
+}
+
+.streak-active {
+  background: linear-gradient(135deg, #3d2412, #5a2f0f);
+  box-shadow: 0 6px 24px rgba(245,166,35,0.25);
+}
+
+.streak-broken {
+  background: linear-gradient(135deg, #2a2f3d, #1f2333);
+}
+
+.streak-flame {
+  font-size: 2.4rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 10px rgba(245,166,35,0.5));
+}
+.streak-broken .streak-flame {
+  filter: none;
+  opacity: 0.6;
+}
+
+.streak-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.streak-num {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: var(--white);
+}
+
+.streak-label {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.streak-best {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.55);
+  white-space: nowrap;
+}
+
+.streak-best--broken {
+  color: var(--amber-light);
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .streak-corner { flex-wrap: wrap; }
+  .streak-best { margin-left: 0; width: 100%; }
+}

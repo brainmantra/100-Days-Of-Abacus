@@ -1,0 +1,121 @@
+.day-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26,35,64,0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+
+.day-modal-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.day-modal-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 40px 32px;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+}
+
+.day-modal-icon {
+  font-size: 2.2rem;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin: 0 auto 18px;
+}
+.day-modal-icon--warn { background: rgba(232,69,60,0.1); }
+.day-modal-icon--ready { background: rgba(245,166,35,0.12); }
+.day-modal-icon--done { background: rgba(39,174,96,0.12); color: var(--green); }
+
+.day-modal-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.day-modal-text {
+  color: var(--slate);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.day-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+/* ── Form embed card ── */
+.day-modal-overlay--form {
+  padding: 12px;
+}
+
+.day-modal-form-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 760px;
+  height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.day-modal-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--ivory-dark);
+}
+.day-modal-form-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.day-modal-iframe-wrap {
+  flex: 1;
+  overflow: hidden;
+}
+
+.day-modal-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.day-modal-form-footer {
+  padding: 16px 22px;
+  border-top: 1px solid var(--ivory-dark);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.day-modal-form-hint {
+  font-size: 0.82rem;
+  color: var(--slate);
+  flex: 1;
+  min-width: 200px;
+}
+
+@media (max-width: 560px) {
+  .day-modal-form-card { height: 95vh; }
+  .day-modal-form-footer { flex-direction: column; align-items: stretch; }
+  .day-modal-form-footer .btn { width: 100%; }
+}
