@@ -2,20 +2,23 @@ import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { isDayToday } from '../utils/dateUtils'
-import { getFormUrl } from '../utils/formsConfig'
+import { getFormUrl, isFormConfigured } from '../utils/formsConfig'
 import api from '../utils/api'
 import toast from 'react-hot-toast'
 import './DayModal.css'
 
 /**
  * Flow:
- * 1. On mount, verify this day is today and not already opened/completed.
- * 2. If valid -> show a "Ready to start?" confirmation (since opening = consuming the one-time link).
- * 3. On confirm -> mark day as "opened" on backend, then render the embedded Google Form.
- * 4. We cannot directly detect Google Form submission from a cross-origin iframe (no postMessage
- *    access by default), so we ask the student to click "I've submitted the form" which marks
- *    completed=true. We also detect a likely submission via the iframe's afterSubmit param trick
- *    when possible (see handleIframeLoad heuristic comment below).
+ * 1. Verify this day is TODAY and not already opened/completed.
+ * 2. Show a "Ready?" confirmation — opening consumes the one-time link.
+ * 3. Mark day "opened" on backend → render embedded Google Form.
+ * 4. Student clicks "I've submitted" → backend marks completed.
+ *
+ * Note on cross-origin form submission detection:
+ * Google Forms iframes are cross-origin, so we cannot read their DOM or
+ * detect submission via JS. The "I've submitted" button is the authoritative
+ * completion signal. For automated confirmation, wire a Google Apps Script
+ * onFormSubmit trigger to POST to /api/webhooks/form-submit (see README).
  */
 export default function DayModal() {
   const { dayNumber } = useParams()
@@ -23,13 +26,13 @@ export default function DayModal() {
   const { student } = useAuth()
   const navigate = useNavigate()
 
-  const [phase, setPhase] = useState('checking') // checking | blocked | confirm | form | submitted | error
-  const [dayRecord, setDayRecord] = useState(null)
+  const [phase, setPhase] = useState('checking') // checking|blocked|confirm|form|submitted|error
+  const [blockReason, setBlockReason] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const iframeRef = useRef(null)
   const loadCountRef = useRef(0)
 
   const formUrl = getFormUrl(student?.level, dayNum)
+  const formReady = isFormConfigured(student?.level, dayNum)
 
   useEffect(() => {
     let mounted = true
@@ -43,26 +46,30 @@ export default function DayModal() {
         const res = await api.get(`/students/${student._id}/progress/${dayNum}`)
         if (!mounted) return
         const record = res.data || null
-        setDayRecord(record)
 
         if (record?.completed) {
           setPhase('submitted')
           return
         }
-        if (!today) {
-          // Past or future day — show informational blocked screen
+        if (record?.opened && today) {
+          setBlockReason('opened-today')
           setPhase('blocked')
           return
         }
-        if (record?.opened) {
-          // Already opened today but not submitted — link is "used up", cannot reopen the form
+        if (record?.opened && !today) {
+          setBlockReason('opened-past')
+          setPhase('blocked')
+          return
+        }
+        if (!today) {
+          setBlockReason('wrong-day')
           setPhase('blocked')
           return
         }
         setPhase('confirm')
-      } catch (err) {
+      } catch {
         if (!mounted) return
-        toast.error('Could not verify this day. Please try again.')
+        toast.error('Could not load this day. Please try again.')
         setPhase('error')
       }
     }
@@ -76,7 +83,8 @@ export default function DayModal() {
       await api.post(`/students/${student._id}/progress/${dayNum}/open`)
       setPhase('form')
     } catch (err) {
-      toast.error('Could not start this day. Please try again.')
+      const msg = err.response?.data?.message || 'Could not start this day.'
+      toast.error(msg)
     } finally {
       setSubmitting(false)
     }
@@ -85,27 +93,19 @@ export default function DayModal() {
   const handleConfirmSubmitted = async () => {
     setSubmitting(true)
     try {
-      const res = await api.post(`/students/${student._id}/progress/${dayNum}/complete`)
-      setDayRecord(res.data)
+      await api.post(`/students/${student._id}/progress/${dayNum}/complete`)
       setPhase('submitted')
-      toast.success('Day marked complete! 🎉')
-    } catch (err) {
+      toast.success('Day marked complete! Great work 🎉')
+    } catch {
       toast.error('Could not confirm submission. Please try again.')
     } finally {
       setSubmitting(false)
     }
   }
 
-  // Heuristic: Google Forms appends "formResponse" or shows a "Your response has been recorded"
-  // page after submit, but cross-origin iframes block reading that content. Counting iframe loads
-  // (form loads once initially, and Google often reloads internally to its confirmation page after
-  // submit) gives a soft hint, but we still require explicit confirmation for accuracy.
-  const handleIframeLoad = () => {
-    loadCountRef.current += 1
-  }
-
   const handleClose = () => navigate('/challenge')
 
+  /* ── Checking spinner ── */
   if (phase === 'checking') {
     return (
       <div className="day-modal-overlay">
@@ -114,10 +114,12 @@ export default function DayModal() {
     )
   }
 
+  /* ── Error ── */
   if (phase === 'error') {
     return (
       <div className="day-modal-overlay" onClick={handleClose}>
         <div className="day-modal-card animate-pop" onClick={e => e.stopPropagation()}>
+          <div className="day-modal-icon day-modal-icon--warn">⚠</div>
           <h2 className="day-modal-title">Something went wrong</h2>
           <p className="day-modal-text">We couldn't load Day {dayNum}. Please go back and try again.</p>
           <button className="btn btn-primary" onClick={handleClose}>Back to Challenge</button>
@@ -126,39 +128,52 @@ export default function DayModal() {
     )
   }
 
+  /* ── Blocked ── */
   if (phase === 'blocked') {
-    const today = isDayToday(student.registrationDate, dayNum)
-    const missedNotSubmitted = !today && dayRecord?.opened && !dayRecord?.completed
-    const neverOpened = !today && !dayRecord?.opened
-
+    const messages = {
+      'opened-today': {
+        title: 'Already opened today',
+        text: `You've already opened Day ${dayNum}'s questionnaire. Each day can only be accessed once. If you haven't submitted the form yet, please do so from the tab where you opened it.`,
+      },
+      'opened-past': {
+        title: 'Missed — not submitted',
+        text: `You opened Day ${dayNum}'s challenge but didn't submit it in time. The link is now permanently locked. Keep going with today's challenge to rebuild your streak!`,
+      },
+      'wrong-day': {
+        title: 'Day not available',
+        text: `Day ${dayNum} is either in the future or has already passed. Each day's challenge is only accessible on its specific day.`,
+      },
+    }
+    const cfg = messages[blockReason] || messages['wrong-day']
     return (
       <div className="day-modal-overlay" onClick={handleClose}>
         <div className="day-modal-card animate-pop" onClick={e => e.stopPropagation()}>
-          <div className="day-modal-icon day-modal-icon--warn">⚠</div>
-          <h2 className="day-modal-title">Day {dayNum} is unavailable</h2>
-          {today && dayRecord?.opened && (
-            <p className="day-modal-text">
-              You've already opened today's questionnaire. It can only be accessed once.
-              {dayRecord?.completed ? '' : ' If you haven\'t submitted it yet, please do so from the tab where you opened it.'}
-            </p>
-          )}
-          {missedNotSubmitted && (
-            <p className="day-modal-text">
-              You opened this day's challenge but didn't submit it in time. The link is now locked.
-              Don't worry — keep going with today's challenge to rebuild your streak!
-            </p>
-          )}
-          {neverOpened && (
-            <p className="day-modal-text">
-              This day has passed and you didn't attempt it. The link is locked, but you can see it here for your records.
-            </p>
-          )}
+          <div className="day-modal-icon day-modal-icon--warn">🔒</div>
+          <h2 className="day-modal-title">{cfg.title}</h2>
+          <p className="day-modal-text">{cfg.text}</p>
           <button className="btn btn-primary" onClick={handleClose}>Back to Challenge</button>
         </div>
       </div>
     )
   }
 
+  /* ── Completed ── */
+  if (phase === 'submitted') {
+    return (
+      <div className="day-modal-overlay" onClick={handleClose}>
+        <div className="day-modal-card animate-pop" onClick={e => e.stopPropagation()}>
+          <div className="day-modal-icon day-modal-icon--done">✓</div>
+          <h2 className="day-modal-title">Day {dayNum} Complete!</h2>
+          <p className="day-modal-text">
+            Excellent work! Come back tomorrow for Day {dayNum + 1}.
+          </p>
+          <button className="btn btn-primary" onClick={handleClose}>Back to Challenge</button>
+        </div>
+      </div>
+    )
+  }
+
+  /* ── Confirmation gate ── */
   if (phase === 'confirm') {
     return (
       <div className="day-modal-overlay" onClick={handleClose}>
@@ -166,13 +181,24 @@ export default function DayModal() {
           <div className="day-modal-icon day-modal-icon--ready">🧮</div>
           <h2 className="day-modal-title">Ready for Day {dayNum}?</h2>
           <p className="day-modal-text">
-            This link can only be opened <strong>once</strong>. Make sure you're ready to focus —
-            once you start, you won't be able to come back to this question set later.
+            This link can only be opened <strong>once</strong>. Make sure you're
+            focused and have enough time — once you start, you cannot reopen it.
           </p>
+          {!formReady && (
+            <div className="day-modal-warn-banner">
+              ⚠ This day's form hasn't been configured yet. Contact your teacher.
+            </div>
+          )}
           <div className="day-modal-actions">
-            <button className="btn btn-ghost" onClick={handleClose} disabled={submitting}>Not yet</button>
-            <button className="btn btn-primary" onClick={handleStart} disabled={submitting}>
-              {submitting ? 'Starting…' : "I'm ready, start →"}
+            <button className="btn btn-ghost" onClick={handleClose} disabled={submitting}>
+              Not yet
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleStart}
+              disabled={submitting || !formReady}
+            >
+              {submitting ? 'Starting…' : "I'm ready →"}
             </button>
           </div>
         </div>
@@ -180,52 +206,38 @@ export default function DayModal() {
     )
   }
 
-  if (phase === 'submitted') {
-    return (
-      <div className="day-modal-overlay" onClick={handleClose}>
-        <div className="day-modal-card animate-pop" onClick={e => e.stopPropagation()}>
-          <div className="day-modal-icon day-modal-icon--done">✓</div>
-          <h2 className="day-modal-title">Day {dayNum} Completed!</h2>
-          <p className="day-modal-text">Great job! Your response has been recorded. Come back tomorrow for Day {dayNum + 1}.</p>
-          <button className="btn btn-primary" onClick={handleClose}>Back to Challenge</button>
-        </div>
-      </div>
-    )
-  }
-
-  // phase === 'form'
+  /* ── Form embed ── */
   return (
     <div className="day-modal-overlay day-modal-overlay--form">
       <div className="day-modal-form-card animate-pop">
         <div className="day-modal-form-header">
-          <h3>Day {dayNum} Questionnaire</h3>
-          <span className="badge badge-amber">In Progress</span>
+          <div className="day-modal-form-header-left">
+            <h3>Day {dayNum} Questionnaire</h3>
+            <span className="badge badge-amber">In Progress — submit before midnight</span>
+          </div>
+          <button className="day-modal-close-btn" onClick={handleClose} title="Back to challenge">✕</button>
         </div>
 
         <div className="day-modal-iframe-wrap">
-          {formUrl ? (
-            <iframe
-              ref={iframeRef}
-              src={formUrl}
-              title={`Day ${dayNum} Form`}
-              onLoad={handleIframeLoad}
-              className="day-modal-iframe"
-            >
-              Loading form…
-            </iframe>
-          ) : (
-            <div className="day-modal-text" style={{ padding: 40, textAlign: 'center' }}>
-              No form configured for this level yet. Please contact your instructor.
-            </div>
-          )}
+          <iframe
+            src={formUrl}
+            title={`Day ${dayNum} Challenge Form`}
+            onLoad={() => { loadCountRef.current += 1 }}
+            className="day-modal-iframe"
+            allow="camera; microphone"
+          />
         </div>
 
         <div className="day-modal-form-footer">
           <p className="day-modal-form-hint">
-            Once you've submitted the form above, click the button below to mark this day complete.
+            Submitted the form above? Click confirm to record your completion.
           </p>
-          <button className="btn btn-primary" onClick={handleConfirmSubmitted} disabled={submitting}>
-            {submitting ? 'Confirming…' : "I've submitted the form ✓"}
+          <button
+            className="btn btn-primary"
+            onClick={handleConfirmSubmitted}
+            disabled={submitting}
+          >
+            {submitting ? 'Confirming…' : "I've submitted ✓"}
           </button>
         </div>
       </div>

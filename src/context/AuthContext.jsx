@@ -13,12 +13,11 @@ export function AuthProvider({ children }) {
       try {
         const parsed = JSON.parse(stored)
         setStudent(parsed)
-        // Verify with backend silently
-        api.get(`/students/${parsed._id}`).then(res => {
+        // Re-verify with backend (handles stale sessions)
+        api.get(`/students/${parsed.id}`).then(res => {
           setStudent(res.data)
           localStorage.setItem('abacus_student', JSON.stringify(res.data))
         }).catch(() => {
-          // Token invalid or student not found
           localStorage.removeItem('abacus_student')
           setStudent(null)
         })

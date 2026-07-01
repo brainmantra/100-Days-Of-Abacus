@@ -5,12 +5,13 @@ const api = axios.create({
   timeout: 15000,
 })
 
+// Attach student id to every request so the backend can identify the caller
 api.interceptors.request.use(config => {
   const stored = localStorage.getItem('abacus_student')
   if (stored) {
     try {
-      const { _id } = JSON.parse(stored)
-      if (_id) config.headers['x-student-id'] = _id
+      const { id } = JSON.parse(stored)
+      if (id) config.headers['x-student-id'] = id
     } catch {}
   }
   return config

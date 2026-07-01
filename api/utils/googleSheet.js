@@ -1,39 +1,61 @@
 import { parse } from 'csv-parse/sync'
 
 /**
- * Fetches and parses the published-as-CSV Google Sheet behind the registration
- * Google Form. Used as a secondary check: if a mobile number isn't in our own
- * database but IS in the sheet, we can auto-import them instead of rejecting.
+ * Fetches the published-as-CSV Google Sheet that backs the registration
+ * Google Form and returns parsed rows.
  *
- * Expected columns (case-insensitive, matched loosely): Name, Mobile/Phone, Level, Timestamp
+ * Column names are read from env vars so you don't have to hard-code them:
+ *   SHEET_MOBILE_COLUMN  (default: "Mobile Number")
+ *   SHEET_NAME_COLUMN    (default: "Full Name")
+ *   SHEET_LEVEL_COLUMN   (default: "Level")
  */
-export async function fetchRegistrationSheet(csvUrl) {
-  if (!csvUrl) return []
-  const res = await fetch(csvUrl)
-  if (!res.ok) throw new Error(`Failed to fetch registration sheet: ${res.status}`)
+export async function fetchRegistrationSheet() {
+  const csvUrl = process.env.REGISTRATION_SHEET_CSV_URL
+  if (!csvUrl) {
+    throw new Error('REGISTRATION_SHEET_CSV_URL is not set in api/.env')
+  }
+
+  const res = await fetch(csvUrl, { signal: AbortSignal.timeout(10_000) })
+  if (!res.ok) throw new Error(`Sheet fetch failed: HTTP ${res.status}`)
+
   const text = await res.text()
   const records = parse(text, { columns: true, skip_empty_lines: true, trim: true })
 
-  return records.map(row => {
-    const get = (keys) => {
-      for (const k of Object.keys(row)) {
-        if (keys.some(kk => k.toLowerCase().includes(kk))) return row[k]
-      }
-      return ''
-    }
-    return {
-      name: get(['name']),
-      mobile: (get(['mobile', 'phone']) || '').replace(/\D/g, '').slice(-10),
-      level: (get(['level']) || '').toLowerCase().trim(),
-      timestamp: get(['timestamp', 'date']),
-    }
-  }).filter(r => r.mobile)
+  const mobileCol = process.env.SHEET_MOBILE_COLUMN || 'Mobile Number'
+  const nameCol   = process.env.SHEET_NAME_COLUMN   || 'Full Name'
+  const levelCol  = process.env.SHEET_LEVEL_COLUMN  || 'Level'
+
+  return records.map(row => ({
+    name:   (row[nameCol]   || '').trim(),
+    mobile: (row[mobileCol] || '').replace(/\D/g, '').slice(-10),
+    level:  (row[levelCol]  || '').trim().toLowerCase(),
+    raw:    row,
+  })).filter(r => r.mobile.length === 10)
 }
 
 /**
- * Looks up a mobile number in the registration sheet.
+ * Looks up a single mobile number in the sheet.
+ * Returns the matching row or null.
  */
-export async function findInRegistrationSheet(csvUrl, mobile) {
-  const rows = await fetchRegistrationSheet(csvUrl)
-  return rows.find(r => r.mobile === mobile) || null
+export async function findInSheet(mobile) {
+  const rows = await fetchRegistrationSheet()
+  return rows.find(r => r.mobile === mobile) ?? null
+}
+
+const VALID_LEVELS = ['beginner', 'elementary', 'intermediate', 'advanced', 'expert']
+
+/**
+ * Normalises a level string from the sheet to one of the 5 valid IDs.
+ * Handles common variations ("Beginner Level", "Level 1-2", etc.).
+ */
+export function normaliseLevel(raw = '') {
+  const s = raw.toLowerCase()
+  if (s.includes('expert'))       return 'expert'
+  if (s.includes('advanced'))     return 'advanced'
+  if (s.includes('intermediate')) return 'intermediate'
+  if (s.includes('elementary'))   return 'elementary'
+  if (s.includes('beginner'))     return 'beginner'
+  // Also accept exact IDs
+  if (VALID_LEVELS.includes(s))   return s
+  return null
 }

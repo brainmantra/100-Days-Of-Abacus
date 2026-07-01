@@ -1,7 +1,7 @@
 .day-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(26,35,64,0.7);
+  background: rgba(26,35,64,0.72);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -26,7 +26,7 @@
 }
 
 .day-modal-icon {
-  font-size: 2.2rem;
+  font-size: 2rem;
   width: 64px;
   height: 64px;
   display: flex;
@@ -37,7 +37,7 @@
 }
 .day-modal-icon--warn { background: rgba(232,69,60,0.1); }
 .day-modal-icon--ready { background: rgba(245,166,35,0.12); }
-.day-modal-icon--done { background: rgba(39,174,96,0.12); color: var(--green); }
+.day-modal-icon--done  { background: rgba(39,174,96,0.12); color: var(--green); }
 
 .day-modal-title {
   font-size: 1.4rem;
@@ -47,9 +47,20 @@
 
 .day-modal-text {
   color: var(--slate);
-  font-size: 0.92rem;
-  line-height: 1.6;
+  font-size: 0.9rem;
+  line-height: 1.65;
   margin-bottom: 24px;
+}
+
+.day-modal-warn-banner {
+  background: rgba(245,166,35,0.12);
+  border: 1.5px solid rgba(245,166,35,0.4);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  color: var(--amber-dark);
+  margin-bottom: 20px;
+  text-align: left;
 }
 
 .day-modal-actions {
@@ -60,15 +71,15 @@
 
 /* ── Form embed card ── */
 .day-modal-overlay--form {
-  padding: 12px;
+  padding: 10px;
 }
 
 .day-modal-form-card {
   background: var(--white);
   border-radius: var(--radius-lg);
   width: 100%;
-  max-width: 760px;
-  height: 92vh;
+  max-width: 780px;
+  height: 93vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -78,12 +89,40 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 22px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--ivory-dark);
+  gap: 12px;
 }
+
+.day-modal-form-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .day-modal-form-header h3 {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
+}
+
+.day-modal-close-btn {
+  background: var(--ivory);
+  border: 1.5px solid var(--ivory-dark);
+  border-radius: var(--radius-full);
+  width: 34px;
+  height: 34px;
+  font-size: 0.9rem;
+  color: var(--slate);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+.day-modal-close-btn:hover {
+  background: var(--ivory-dark);
+  color: var(--navy);
 }
 
 .day-modal-iframe-wrap {
@@ -98,7 +137,7 @@
 }
 
 .day-modal-form-footer {
-  padding: 16px 22px;
+  padding: 14px 20px;
   border-top: 1px solid var(--ivory-dark);
   display: flex;
   align-items: center;
@@ -108,14 +147,17 @@
 }
 
 .day-modal-form-hint {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   color: var(--slate);
   flex: 1;
-  min-width: 200px;
+  min-width: 180px;
 }
 
 @media (max-width: 560px) {
-  .day-modal-form-card { height: 95vh; }
-  .day-modal-form-footer { flex-direction: column; align-items: stretch; }
+  .day-modal-form-card { height: 96vh; }
+  .day-modal-form-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
   .day-modal-form-footer .btn { width: 100%; }
 }

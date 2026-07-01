@@ -1,58 +1,53 @@
 import { Router } from 'express'
-import Student from '../models/Student.js'
+import pool from '../db.js'
 import { getWeekStart, getWeekLabel } from '../utils/dateHelpers.js'
 
 const router = Router()
 
-// ── Weekly leaderboard: ranks students by accuracy (desc) then avg time (asc) ──
+/**
+ * GET /api/leaderboard/weekly?level=beginner
+ *
+ * Returns the top students for the current Mon–Sun week,
+ * ranked by average accuracy (desc) then average time (asc).
+ * Only students who have at least one completed day this week
+ * with an accuracy value are included.
+ */
 router.get('/weekly', async (req, res) => {
   try {
     const { level } = req.query
     const weekStart = getWeekStart()
 
-    const match = {}
-    if (level) match.level = level
+    const levelClause = level ? `AND s.level = $2` : ''
+    const params      = level ? [weekStart, level] : [weekStart]
 
-    const students = await Student.find(match).lean()
-
-    const leaders = students
-      .map(s => {
-        const weekDays = s.days.filter(d =>
-          d.completed && d.completedAt && new Date(d.completedAt) >= weekStart &&
-          typeof d.accuracy === 'number'
-        )
-        if (weekDays.length === 0) return null
-
-        const avgAccuracy = weekDays.reduce((sum, d) => sum + d.accuracy, 0) / weekDays.length
-        const timedDays = weekDays.filter(d => typeof d.timeTakenSeconds === 'number')
-        const avgTime = timedDays.length
-          ? timedDays.reduce((sum, d) => sum + d.timeTakenSeconds, 0) / timedDays.length
-          : null
-
-        return {
-          _id: s._id,
-          name: s.name,
-          level: s.level,
-          accuracy: Math.round(avgAccuracy),
-          avgTime: avgTime !== null ? Math.round(avgTime) : '–',
-          daysCompletedThisWeek: weekDays.length,
-        }
-      })
-      .filter(Boolean)
-      .sort((a, b) => {
-        if (b.accuracy !== a.accuracy) return b.accuracy - a.accuracy
-        const at = typeof a.avgTime === 'number' ? a.avgTime : Infinity
-        const bt = typeof b.avgTime === 'number' ? b.avgTime : Infinity
-        return at - bt
-      })
+    const { rows } = await pool.query(
+      `SELECT
+          s.id,
+          s.name,
+          s.level,
+          COUNT(dr.id)::int                            AS days_this_week,
+          ROUND(AVG(dr.accuracy)::numeric, 1)          AS accuracy,
+          ROUND(AVG(dr.time_taken_seconds)::numeric, 0)::int AS avg_time
+        FROM students s
+        JOIN day_records dr
+          ON dr.student_id = s.id
+         AND dr.completed  = TRUE
+         AND dr.completed_at >= $1
+         AND dr.accuracy IS NOT NULL
+        ${levelClause}
+        GROUP BY s.id, s.name, s.level
+        ORDER BY accuracy DESC, avg_time ASC NULLS LAST
+        LIMIT 20`,
+      params
+    )
 
     res.json({
-      leaders,
+      leaders:   rows,
       weekLabel: getWeekLabel(),
     })
   } catch (err) {
-    console.error('Leaderboard error:', err)
-    res.status(500).json({ message: 'Server error fetching leaderboard' })
+    console.error('[leaderboard] Error:', err)
+    res.status(500).json({ message: 'Server error fetching leaderboard.' })
   }
 })
 

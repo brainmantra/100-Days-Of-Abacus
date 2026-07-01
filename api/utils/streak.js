@@ -1,55 +1,47 @@
-import { getChallengeDay, isSameCalendarDay } from './dateHelpers.js'
+import pool from '../db.js'
+import { getChallengeDay } from './dateHelpers.js'
 
 /**
- * Recalculates a student's current and longest streak based on their day records.
- * Streak rule: counts consecutive completed days ending at "yesterday or today".
- * If the most recently elapsed challenge day (today, or yesterday if today not yet
- * completed) was missed (past, not completed), the streak resets to 0.
+ * Recalculates and saves streak for a single student.
+ * Walks every elapsed challenge day from Day 1 up to today.
+ * A past day without a completed record breaks the streak.
+ * Today is excluded from streak-breaking (day isn't over yet).
  *
- * This is called:
- *  - whenever a day is marked completed
- *  - by the nightly cron job to break streaks for students who missed "today" once
- *    that day has fully elapsed
+ * Returns { streak, longestStreak }
  */
-export function recalculateStreak(student, now = new Date()) {
-  const currentDay = getChallengeDay(student.registrationDate, now)
-  const dayMap = new Map(student.days.map(d => [d.dayNumber, d]))
+export async function recalculateStreak(studentId, registrationDate, now = new Date()) {
+  const currentDay = getChallengeDay(registrationDate, now)
 
-  let streak = 0
-  let longest = student.longestStreak || 0
+  // Fetch all completed day records for this student
+  const { rows } = await pool.query(
+    `SELECT day_number FROM day_records
+      WHERE student_id = $1 AND completed = TRUE`,
+    [studentId]
+  )
+  const completedSet = new Set(rows.map(r => r.day_number))
+
   let runningStreak = 0
+  let longest = 0
 
-  // Walk from day 1 up to the last fully-elapsed day (currentDay - 1 if today not over,
-  // but since cron runs after midnight, "currentDay - 1" is effectively "yesterday").
-  const lastElapsedDay = Math.min(currentDay, 100)
-
-  for (let d = 1; d <= lastElapsedDay; d++) {
-    const rec = dayMap.get(d)
-    if (rec?.completed) {
-      runningStreak += 1
-      longest = Math.max(longest, runningStreak)
+  for (let d = 1; d <= Math.min(currentDay, 100); d++) {
+    if (completedSet.has(d)) {
+      runningStreak++
+      if (runningStreak > longest) longest = runningStreak
     } else {
-      // A past, non-completed day breaks the streak — unless it's "today" and still in progress
       const isToday = d === currentDay
-      if (isToday) {
-        // Don't penalize yet; today isn't over
-        break
-      }
-      runningStreak = 0
+      if (isToday) break          // today not over — don't penalise yet
+      runningStreak = 0           // missed past day — break streak
     }
   }
 
-  streak = runningStreak
-  return { streak, longestStreak: longest }
-}
+  // Persist updated values
+  await pool.query(
+    `UPDATE students
+        SET streak = $1, longest_streak = GREATEST(longest_streak, $2),
+            last_streak_check = NOW(), updated_at = NOW()
+      WHERE id = $3`,
+    [runningStreak, longest, studentId]
+  )
 
-/**
- * Applies streak recalculation to a student doc in-place and returns it (not saved).
- */
-export function applyStreak(student, now = new Date()) {
-  const { streak, longestStreak } = recalculateStreak(student, now)
-  student.streak = streak
-  student.longestStreak = longestStreak
-  student.lastStreakCheckDate = now
-  return student
+  return { streak: runningStreak, longestStreak: longest }
 }
