@@ -32,32 +32,36 @@ router.post('/form-submit', async (req, res) => {
       return res.status(404).json({ message: 'Student not found' })
     }
 
-    // 2. Get their current challenge day
-    const currentDay = getChallengeDay(student.registration_date)
+    // 2. Find the most recently opened day that isn't completed yet
+    const { rows: openDays } = await pool.query(
+      `SELECT day_number FROM day_records 
+       WHERE student_id = $1 AND opened = TRUE AND completed = FALSE
+       ORDER BY day_number DESC LIMIT 1`,
+      [student.id]
+    )
 
-    // 3. Mark the day as completed if it was opened
-    // Note: We only complete the current day. If they somehow submit an old form, it doesn't count.
-    const { rows: dayRecords } = await pool.query(
+    if (openDays.length === 0) {
+      console.warn(`[webhook] Student ${student.id} submitted form, but has no open, incomplete days.`)
+      return res.status(409).json({ message: 'No open incomplete day found' })
+    }
+
+    const targetDay = openDays[0].day_number
+
+    // 3. Mark the target day as completed
+    await pool.query(
       `UPDATE day_records
           SET completed = TRUE, 
               completed_at = NOW(),
               updated_at = NOW()
-        WHERE student_id = $1 AND day_number = $2 AND opened = TRUE
+        WHERE student_id = $1 AND day_number = $2
         RETURNING *`,
-      [student.id, currentDay]
+      [student.id, targetDay]
     )
-
-    if (dayRecords.length === 0) {
-      console.warn(`[webhook] Student ${student.id} submitted form, but Day ${currentDay} is not currently opened.`)
-      // It might be a duplicate submission, or they submitted without clicking the UI first.
-      // Depending on rules, we could auto-open it here, but let's stick to the flow.
-      return res.status(409).json({ message: 'Day not opened' })
-    }
 
     // 4. Recalculate streak
     await recalculateStreak(student.id, student.registration_date)
     
-    console.log(`[webhook] Successfully verified and completed Day ${currentDay} for student ${student.id}`)
+    console.log(`[webhook] Successfully verified and completed Day ${targetDay} for student ${student.id}`)
     return res.status(200).json({ message: 'Success' })
 
   } catch (err) {
