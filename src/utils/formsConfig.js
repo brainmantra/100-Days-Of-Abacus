@@ -31,144 +31,36 @@ export const LEVELS = [
   { id: '4',     label: '4',     description: 'Level 4' },
 ]
 
+const Level1_FORMS = [
+]
+
+const Level2_FORMS = [
+  "https://docs.google.com/forms/d/e/1FAIpQLSdjl4pPj7iHkV83nI8Cot6CFRDbY7HJQaKY951FV_JtClB89g/viewform?embedded=true",
+  "https://docs.google.com/forms/d/e/1FAIpQLSc42_iA-_-CUsEOO3BlV5kCCT_u_4lrUEKg-xo8QVXJEash6Q/viewform?embedded=true",
+  "https://docs.google.com/forms/d/e/1FAIpQLSdFrigqXnLAgjlDnKvW9_X1-jbS_00_l9nww8ES3oHzyfMV5Q/viewform?embedded=true",
+  "https://docs.google.com/forms/d/e/1FAIpQLSekiGNg_m7RfrIyHTUY8Tbr9_syjz3AEnQoG2Ot-F4BswUUyQ/viewform?embedded=true",
+  "https://docs.google.com/forms/d/e/1FAIpQLSfsTrXWCenNogKee-3HBJseXSviNckof7oSJujK4ACV-IQ_bg/viewform?embedded=true",
+]
+
 const Level3_FORMS = [
-  // Day 1  – Day 10
   "https://docs.google.com/forms/d/e/1FAIpQLSfrDhixcWG-EHKUK4SlrKAM6dbhGhOGSN7b7dVLWFqCDgZuEw/viewform?embedded=true", 
   "https://docs.google.com/forms/d/e/1FAIpQLSfpTBoLDDj7gTQSQmm8Witsr-rRVRiARYVG6lHagVzuFcuNxA/viewform?embedded=true",
-  null, null, null, null, null, null, null, null,
-  // Day 11 – Day 20
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 21 – Day 30
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 31 – Day 40
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 41 – Day 50
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 51 – Day 60
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 61 – Day 70
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 71 – Day 80
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 81 – Day 90
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 91 – Day 100
-  null, null, null, null, null, null, null, null, null, null,
+  "https://docs.google.com/forms/d/e/1FAIpQLSc2-ZreGKVPoB_zsvA5YujCr1LXoYXEx_3ZqU-cIYbYtTOejA/viewform?embedded=true",
+  "https://docs.google.com/forms/d/e/1FAIpQLSfyicNERAz0K83t8ea_lR1lJDaLIYzBpjqgW3kpAfJhJR68xg/viewform?embedded=true",
+  "https://docs.google.com/forms/d/e/1FAIpQLScsLUcVHZHCmSWtI-8LShcu_45IynilZYCqXJ7xp2pGDLgTJA/viewform?embedded=true",
 ]
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  ELEMENTARY  (100 form URLs, one per day)
-// ─────────────────────────────────────────────────────────────────────────────
-const ELEMENTARY_FORMS = [
-  // Day 1  – Day 10
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 11 – Day 20
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 21 – Day 30
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 31 – Day 40
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 41 – Day 50
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 51 – Day 60
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 61 – Day 70
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 71 – Day 80
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 81 – Day 90
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 91 – Day 100
-  null, null, null, null, null, null, null, null, null, null,
-]
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  INTERMEDIATE  (100 form URLs, one per day)
-// ─────────────────────────────────────────────────────────────────────────────
-const INTERMEDIATE_FORMS = [
-  // Day 1  – Day 10
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 11 – Day 20
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 21 – Day 30
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 31 – Day 40
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 41 – Day 50
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 51 – Day 60
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 61 – Day 70
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 71 – Day 80
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 81 – Day 90
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 91 – Day 100
-  null, null, null, null, null, null, null, null, null, null,
-]
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  ADVANCED  (100 form URLs, one per day)
-// ─────────────────────────────────────────────────────────────────────────────
-const ADVANCED_FORMS = [
-  // Day 1  – Day 10
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 11 – Day 20
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 21 – Day 30
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 31 – Day 40
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 41 – Day 50
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 51 – Day 60
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 61 – Day 70
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 71 – Day 80
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 81 – Day 90
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 91 – Day 100
-  null, null, null, null, null, null, null, null, null, null,
-]
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  EXPERT  (100 form URLs, one per day)
-// ─────────────────────────────────────────────────────────────────────────────
-const EXPERT_FORMS = [
-  // Day 1  – Day 10
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 11 – Day 20
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 21 – Day 30
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 31 – Day 40
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 41 – Day 50
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 51 – Day 60
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 61 – Day 70
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 71 – Day 80
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 81 – Day 90
-  null, null, null, null, null, null, null, null, null, null,
-  // Day 91 – Day 100
-  null, null, null, null, null, null, null, null, null, null,
+const Level4_FORMS = [
+  "https://docs.google.com/forms/d/e/1FAIpQLSezu3W08Buj_BY3Z-hT6OT4Fz80Z76gCryeq6zOj7BMSSNY4A/viewform?embedded=true",
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Master lookup map
 // ─────────────────────────────────────────────────────────────────────────────
 const FORM_MAP = {
-  beginner:     BEGINNER_FORMS,
-  elementary:   ELEMENTARY_FORMS,
-  intermediate: INTERMEDIATE_FORMS,
-  advanced:     ADVANCED_FORMS,
-  expert:       EXPERT_FORMS,
+  1:     Level1_FORMS,
+  2:     Level2_FORMS,
+  3:     Level3_FORMS,
 }
 
 /**
@@ -178,7 +70,7 @@ const FORM_MAP = {
 export function getFormUrl(level, dayNumber) {
   const forms = FORM_MAP[level]
   if (!forms) return null
-  return forms[dayNumber - 1] ?? null   // dayNumber is 1-based; array is 0-based
+  return forms[dayNumber - 1] ?? null 
 }
 
 /**
