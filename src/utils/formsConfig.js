@@ -31,10 +31,10 @@ export const LEVELS = [
   { id: '4',     label: '4',     description: 'Level 4' },
 ]
 
-const Level1_FORMS = [
+const FoundationLevel1_FORMS = [
 ]
 
-const Level2_FORMS = [
+const FoundationLevel2_FORMS = [
   "https://docs.google.com/forms/d/e/1FAIpQLSdjl4pPj7iHkV83nI8Cot6CFRDbY7HJQaKY951FV_JtClB89g/viewform?embedded=true",
   "https://docs.google.com/forms/d/e/1FAIpQLSc42_iA-_-CUsEOO3BlV5kCCT_u_4lrUEKg-xo8QVXJEash6Q/viewform?embedded=true",
   "https://docs.google.com/forms/d/e/1FAIpQLSdFrigqXnLAgjlDnKvW9_X1-jbS_00_l9nww8ES3oHzyfMV5Q/viewform?embedded=true",
@@ -42,7 +42,7 @@ const Level2_FORMS = [
   "https://docs.google.com/forms/d/e/1FAIpQLSfsTrXWCenNogKee-3HBJseXSviNckof7oSJujK4ACV-IQ_bg/viewform?embedded=true",
 ]
 
-const Level3_FORMS = [
+const FoundationLevel3_FORMS = [
   "https://docs.google.com/forms/d/e/1FAIpQLSfrDhixcWG-EHKUK4SlrKAM6dbhGhOGSN7b7dVLWFqCDgZuEw/viewform?embedded=true", 
   "https://docs.google.com/forms/d/e/1FAIpQLSfpTBoLDDj7gTQSQmm8Witsr-rRVRiARYVG6lHagVzuFcuNxA/viewform?embedded=true",
   "https://docs.google.com/forms/d/e/1FAIpQLSc2-ZreGKVPoB_zsvA5YujCr1LXoYXEx_3ZqU-cIYbYtTOejA/viewform?embedded=true",
@@ -50,7 +50,7 @@ const Level3_FORMS = [
   "https://docs.google.com/forms/d/e/1FAIpQLScsLUcVHZHCmSWtI-8LShcu_45IynilZYCqXJ7xp2pGDLgTJA/viewform?embedded=true",
 ]
 
-const Level4_FORMS = [
+const FoundationLevel4_FORMS = [
   "https://docs.google.com/forms/d/e/1FAIpQLSezu3W08Buj_BY3Z-hT6OT4Fz80Z76gCryeq6zOj7BMSSNY4A/viewform?embedded=true",
 ]
 
@@ -58,9 +58,10 @@ const Level4_FORMS = [
 //  Master lookup map
 // ─────────────────────────────────────────────────────────────────────────────
 const FORM_MAP = {
-  1:     Level1_FORMS,
-  2:     Level2_FORMS,
-  3:     Level3_FORMS,
+  1:     FoundationLevel1_FORMS,
+  2:     FoundationLevel2_FORMS,
+  3:     FoundationLevel3_FORMS,
+  4:     FoundationLevel4_FORMS,
 }
 
 /**
