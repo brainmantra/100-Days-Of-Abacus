@@ -28,13 +28,27 @@ export default function LoginPage() {
     setNotFound(false)
     try {
       const res = await api.post('/students/login', { mobile })
+      
+      // Prevent crashes if the server returns HTML instead of JSON
+      if (!res.data || !res.data.student) {
+        throw new Error('Invalid response from server. Check API URL configuration.')
+      }
+      
       login(res.data.student)
       toast.success(`Welcome back, ${res.data.student.name}!`)
       navigate('/welcome')
     } catch (err) {
+      console.error('[Login Error]', err)
       const status = err.response?.status
+      
       if (status === 404) {
         setNotFound(true)
+      } else if (err.response?.data?.message) {
+        // Show the exact error message thrown by the backend (e.g. Invalid Level, 503, etc)
+        toast.error(err.response.data.message)
+      } else if (err.message) {
+        // Show network errors or our custom thrown error
+        toast.error(err.message)
       } else {
         toast.error('Something went wrong. Please try again.')
       }
