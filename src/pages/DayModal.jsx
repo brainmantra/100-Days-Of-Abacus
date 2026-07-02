@@ -41,7 +41,7 @@ export default function DayModal() {
         setPhase('error')
         return
       }
-      const today = isDayToday(student.registrationDate, dayNum)
+      const today = isDayToday(student.registration_date, dayNum)
       try {
         const res = await api.get(`/students/${student._id}/progress/${dayNum}`)
         if (!mounted) return

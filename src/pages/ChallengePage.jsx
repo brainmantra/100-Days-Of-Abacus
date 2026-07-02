@@ -18,7 +18,7 @@ export default function ChallengePage() {
   const [loading, setLoading] = useState(true)
 
   const levelInfo = LEVELS.find(l => l.id === student?.level)
-  const currentDay = useMemo(() => getChallengeDay(student?.registrationDate), [student])
+  const currentDay = useMemo(() => getChallengeDay(student?.registration_date), [student])
   const clampedCurrentDay = Math.min(currentDay, 100)
 
   useEffect(() => {
@@ -117,7 +117,7 @@ export default function ChallengePage() {
               <DayCard
                 key={dayNum}
                 dayNumber={dayNum}
-                registrationDate={student.registrationDate}
+                registrationDate={student.registration_date}
                 dayRecord={dayMap[dayNum]}
               />
             ))}
