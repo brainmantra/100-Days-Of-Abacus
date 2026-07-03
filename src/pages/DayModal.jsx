@@ -137,7 +137,7 @@ export default function DayModal() {
     const messages = {
       'opened-today': {
         title: 'Already opened today',
-        text: `You've already opened Day ${dayNum}'s questionnaire. Each day can only be accessed once. If you haven't submitted the form yet, please do so from the tab where you opened it.`,
+        text: `You've already opened Day ${dayNum}'s questionnaire. You can still access it until midnight today. If you haven't submitted the form yet, please do so.`,
       },
       'opened-past': {
         title: 'Missed — not submitted',
@@ -185,8 +185,8 @@ export default function DayModal() {
           <div className="day-modal-icon day-modal-icon--ready">🧮</div>
           <h2 className="day-modal-title">Ready for Day {dayNum}?</h2>
           <p className="day-modal-text">
-            This link can only be opened <strong>once</strong>. Make sure you're
-            focused and have enough time — once you start, you cannot reopen it.
+            Make sure you're focused and have enough time. You can reopen this link 
+            as many times as needed today, but it will <strong>permanently lock</strong> at midnight!
           </p>
           {!formReady && (
             <div className="day-modal-warn-banner">
