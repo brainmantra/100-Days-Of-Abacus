@@ -36,6 +36,8 @@ export default function LeaderboardPage() {
   }, [levelFilter])
 
   const medals = ['🥇', '🥈', '🥉']
+  const top3 = leaders.slice(0, 3)
+  const rest = leaders.slice(3)
 
   return (
     <div className="page-wrapper">

@@ -12,7 +12,9 @@ api.interceptors.request.use(config => {
     try {
       const { id } = JSON.parse(stored)
       if (id) config.headers['x-student-id'] = id
-    } catch {}
+    } catch {
+      // Ignore parse error
+    }
   }
   return config
 })

@@ -1,3 +1,4 @@
+/* global Intl */
 function getISTMidnightUTC(d = new Date()) {
   const date = new Date(d)
   const options = { timeZone: 'Asia/Kolkata', year: 'numeric', month: 'numeric', day: 'numeric' }
@@ -53,9 +54,7 @@ export function getTimeUntilMidnight() {
   parts.forEach(({ type, value }) => { p[type] = parseInt(value, 10) })
   
   // Next midnight in IST
-  const nextMidnightISTString = `${p.month}/${p.day + 1}/${p.year} 00:00:00`
-  const nextMidnightDate = new Date(new Date(nextMidnightISTString).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }))
-  
+  // const nextMidnightISTString = `${p.month}/${p.day + 1}/${p.year} 00:00:00`
   // More robust way to find next IST midnight:
   // Date.UTC of tomorrow's IST date, minus Date.UTC of today's IST date? No, time remaining is actual ms.
   // Let's use a simpler approach: get current time in IST, find ms to 24:00:00.

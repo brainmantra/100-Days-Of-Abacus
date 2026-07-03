@@ -37,12 +37,21 @@ export default function DayModal() {
   const [lastXpGained, setLastXpGained] = useState(0)
   const [showXpAnim, setShowXpAnim] = useState(false)
   
-  // UI Timer for current question
-  const [uiTimer, setUiTimer] = useState(0)
   // Sub-second precision for the shrinking bar
   const [msElapsed, setMsElapsed] = useState(0)
 
   const formReady = isFormConfigured(student?.level, dayNum)
+
+  // Trigger confetti when entering summary phase
+  useEffect(() => {
+    if (phase === 'summary') {
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+    }
+  }, [phase]);
 
   useEffect(() => {
     let mounted = true
@@ -89,7 +98,6 @@ export default function DayModal() {
       interval = setInterval(() => {
         const elapsed = Date.now() - questionStart
         setMsElapsed(elapsed)
-        setUiTimer(Math.floor(elapsed / 1000))
       }, 50) // 50ms for smooth progress bar
     }
     return () => clearInterval(interval)
@@ -183,7 +191,7 @@ export default function DayModal() {
       setCurrentAnswer('')
       setQuestionStart(Date.now())
       setMsElapsed(0)
-      setUiTimer(0)
+      setMsElapsed(0)
     } else {
       submitTest(newAnswers, newTimes)
     }
@@ -302,16 +310,6 @@ export default function DayModal() {
     )
   }
 
-  // Trigger confetti when entering summary phase
-  useEffect(() => {
-    if (phase === 'summary') {
-      confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
-    }
-  }, [phase]);
 
   if (phase === 'summary') {
     return (
