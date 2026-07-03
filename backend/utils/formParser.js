@@ -4,7 +4,7 @@ export async function fetchAndParseForm(formUrl) {
     if (!res.ok) throw new Error(`Failed to fetch form: ${res.status} ${res.statusText}`)
     const html = await res.text()
 
-    const match = html.match(/var FB_PUBLIC_LOAD_DATA_ = (\[.*?\]);\n/)
+    const match = html.match(/var FB_PUBLIC_LOAD_DATA_ = (\[.*?\]);/s)
     if (!match) {
       throw new Error("Could not find form data in the page.")
     }
