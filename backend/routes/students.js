@@ -3,8 +3,6 @@ import pool from '../db.js'
 import { getChallengeDay } from '../utils/dateHelpers.js'
 import { recalculateStreak } from '../utils/streak.js'
 import { findInSheet, normaliseLevel } from '../utils/googleSheet.js'
-import { getFormUrl } from '../utils/formsConfig.js'
-import { fetchAndParseForm } from '../utils/formParser.js'
 
 const router = Router()
 

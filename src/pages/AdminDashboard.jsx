@@ -60,26 +60,26 @@ export default function AdminDashboard() {
     }
   }
 
-  const fetchResponses = async () => {
-    setLoadingRes(true)
-    try {
-      const token = localStorage.getItem('adminToken')
-      const params = new URLSearchParams()
-      if (filterLevel) params.append('level', filterLevel)
-      if (filterDay) params.append('day_number', filterDay)
-
-      const res = await api.get(`/admin/responses?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      setResponses(res.data)
-    } catch (err) {
-      toast.error('Failed to fetch responses')
-    } finally {
-      setLoadingRes(false)
-    }
-  }
-
   useEffect(() => {
+    const fetchResponses = async () => {
+      setLoadingRes(true)
+      try {
+        const token = localStorage.getItem('adminToken')
+        const params = new URLSearchParams()
+        if (filterLevel) params.append('level', filterLevel)
+        if (filterDay) params.append('day_number', filterDay)
+
+        const res = await api.get(`/admin/responses?${params.toString()}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        setResponses(res.data)
+      } catch (err) {
+        toast.error('Failed to fetch responses')
+      } finally {
+        setLoadingRes(false)
+      }
+    }
+
     if (activeTab === 'responses') {
       fetchResponses()
     }
