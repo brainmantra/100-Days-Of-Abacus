@@ -27,7 +27,7 @@ export default function DayCard({ dayNumber, registrationDate, dayRecord }) {
     status = dayRecord?.opened ? 'opened-past' : 'missed'
   }
 
-  const clickable = status === 'today'
+  const clickable = status === 'today' || status === 'opened'
 
   const handleClick = () => {
     if (!clickable) return

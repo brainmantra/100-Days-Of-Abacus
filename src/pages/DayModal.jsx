@@ -52,8 +52,7 @@ export default function DayModal() {
           return
         }
         if (record?.opened && today) {
-          setBlockReason('opened-today')
-          setPhase('blocked')
+          setPhase('form')
           return
         }
         if (record?.opened && !today) {
@@ -82,6 +81,7 @@ export default function DayModal() {
     try {
       await api.post(`/students/${student._id}/progress/${dayNum}/open`)
       setPhase('form')
+      window.open(formUrl, '_blank')
     } catch (err) {
       const msg = err.response?.data?.message || 'Could not start this day.'
       toast.error(msg)
@@ -222,14 +222,19 @@ export default function DayModal() {
           <button className="day-modal-close-btn" onClick={handleClose} title="Back to challenge">✕</button>
         </div>
 
-        <div className="day-modal-iframe-wrap">
-          <iframe
-            src={formUrl}
-            title={`Day ${dayNum} Challenge Form`}
-            onLoad={() => { loadCountRef.current += 1 }}
-            className="day-modal-iframe"
-            allow="camera; microphone"
-          />
+        <div className="day-modal-iframe-wrap" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px', textAlign: 'center' }}>
+          <p style={{ marginBottom: '20px', color: '#64748b' }}>
+            Your form is ready. Please complete it in the new tab, then return here to check your status.
+          </p>
+          <a 
+            href={formUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-primary"
+            style={{ fontSize: '1.1rem', padding: '12px 24px' }}
+          >
+            Open Google Form ↗
+          </a>
         </div>
 
         <div className="day-modal-form-footer">
@@ -237,7 +242,7 @@ export default function DayModal() {
             Submitted the form above? Our system verifies it automatically. If it doesn't close on its own, you can manually check the status.
           </p>
           <button
-            className="btn btn-primary"
+            className="btn btn-secondary"
             onClick={handleCheckVerification}
             disabled={submitting}
           >
