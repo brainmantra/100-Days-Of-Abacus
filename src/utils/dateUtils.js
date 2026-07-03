@@ -33,3 +33,10 @@ export function formatDate(date) {
     weekday: 'short', month: 'short', day: 'numeric',
   })
 }
+
+export function getTimeUntilMidnight() {
+  const now = new Date()
+  const midnight = new Date(now)
+  midnight.setHours(24, 0, 0, 0)
+  return midnight - now
+}

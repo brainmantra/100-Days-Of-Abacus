@@ -20,6 +20,7 @@ export default function ChallengePage() {
   const levelInfo = LEVELS.find(l => l.id === student?.level)
   const currentDay = useMemo(() => getChallengeDay(student?.registration_date), [student])
   const clampedCurrentDay = Math.min(currentDay, 100)
+  const maxRenderDay = Math.min(currentDay + 1, 100)
 
   useEffect(() => {
     let mounted = true
@@ -113,7 +114,7 @@ export default function ChallengePage() {
           </div>
         ) : (
           <section className="day-grid animate-fade" style={{ animationDelay: '0.1s' }}>
-            {Array.from({ length: clampedCurrentDay }, (_, i) => i + 1).map(dayNum => (
+            {Array.from({ length: maxRenderDay }, (_, i) => i + 1).map(dayNum => (
               <DayCard
                 key={dayNum}
                 dayNumber={dayNum}

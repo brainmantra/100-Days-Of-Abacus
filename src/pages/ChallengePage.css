@@ -85,15 +85,30 @@
 }
 
 .day-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
-  gap: 12px;
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+  gap: 20px;
+  padding-bottom: 20px;
+  align-items: stretch;
+}
+
+/* Custom scrollbar for day-grid */
+.day-grid::-webkit-scrollbar {
+  height: 8px;
+}
+.day-grid::-webkit-scrollbar-track {
+  background: var(--ivory-dark);
+  border-radius: 4px;
+}
+.day-grid::-webkit-scrollbar-thumb {
+  background: var(--navy);
+  border-radius: 4px;
 }
 
 @media (max-width: 640px) {
   .day-grid {
-    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-    gap: 8px;
+    gap: 16px;
   }
   .challenge-nav { width: 100%; justify-content: flex-end; }
   .challenge-brand-text { display: none; }

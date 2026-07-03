@@ -1,22 +1,15 @@
 import { useNavigate } from 'react-router-dom'
-import { isDayToday, isDayPast, formatDate, getDayDate } from '../utils/dateUtils'
+import { useState, useEffect } from 'react'
+import { isDayToday, isDayPast, formatDate, getDayDate, getTimeUntilMidnight } from '../utils/dateUtils'
 import './DayCard.css'
 
-/**
- * Day status logic:
- * - 'locked'    : future day, not yet reachable
- * - 'today'     : today's day, not yet opened -> clickable
- * - 'opened'    : today's day, opened but form not submitted -> "Started" message
- * - 'completed' : form submitted (any day)
- * - 'missed'    : past day, never opened
- */
 export default function DayCard({ dayNumber, registrationDate, dayRecord }) {
   const navigate = useNavigate()
   const dayDate = getDayDate(registrationDate, dayNumber)
   const today = isDayToday(registrationDate, dayNumber)
   const past = isDayPast(registrationDate, dayNumber)
 
-  let status = 'locked'
+  let status = 'future'
   if (dayRecord?.completed) {
     status = 'completed'
   } else if (dayRecord?.opened && today) {
@@ -34,27 +27,72 @@ export default function DayCard({ dayNumber, registrationDate, dayRecord }) {
     navigate(`/challenge/day/${dayNumber}`)
   }
 
+  // Timer logic for next day
+  const [timeLeft, setTimeLeft] = useState(getTimeUntilMidnight())
+  
+  useEffect(() => {
+    if (status !== 'future') return
+    const timer = setInterval(() => {
+      setTimeLeft(getTimeUntilMidnight())
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [status])
+
+  const formatTimer = (ms) => {
+    if (ms < 0) return "00:00:00"
+    const h = Math.floor(ms / (1000 * 60 * 60))
+    const m = Math.floor((ms / 1000 / 60) % 60)
+    const s = Math.floor((ms / 1000) % 60)
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+  }
+
   const statusConfig = {
-    locked: { icon: '🔒', label: 'Locked', cls: 'day-locked' },
-    today: { icon: '▶', label: 'Start Now', cls: 'day-today' },
-    opened: { icon: '⏳', label: 'Started — Not Submitted', cls: 'day-opened' },
-    'opened-past': { icon: '⚠', label: 'Missed — Not Submitted', cls: 'day-missed' },
-    completed: { icon: '✓', label: 'Completed', cls: 'day-completed' },
-    missed: { icon: '✕', label: 'Missed', cls: 'day-missed' },
+    future: { badge: '🔒 LOCKED', btn: formatTimer(timeLeft), btnClass: 'btn-future', icon: '⏱' },
+    today: { badge: '▶ ACTIVE', btn: 'Start Now', btnClass: 'btn-today', icon: '' },
+    opened: { badge: '⏳ IN PROGRESS', btn: 'Resume', btnClass: 'btn-opened', icon: '' },
+    'opened-past': { badge: '✕ MISSED', btn: 'Missed', btnClass: 'btn-missed', icon: '' },
+    completed: { badge: '✓ COMPLETED', btn: 'Completed', btnClass: 'btn-completed', icon: '✓' },
+    missed: { badge: '✕ MISSED', btn: 'Missed', btnClass: 'btn-missed', icon: '' },
   }
   const cfg = statusConfig[status]
 
   return (
-    <button
-      className={`day-card ${cfg.cls} ${clickable ? 'day-clickable' : ''}`}
-      onClick={handleClick}
-      disabled={!clickable}
-      title={`Day ${dayNumber} — ${formatDate(dayDate)}`}
-    >
-      <span className="day-card-num">{dayNumber}</span>
-      <span className="day-card-icon">{cfg.icon}</span>
-      <span className="day-card-status">{cfg.label}</span>
-      <span className="day-card-date">{formatDate(dayDate)}</span>
-    </button>
+    <div className={`day-card-container ${status}`}>
+      <div className="day-card-header">
+        <h3 className="day-card-title">Day {dayNumber}</h3>
+        <span className={`day-card-badge badge-${status}`}>{cfg.badge}</span>
+      </div>
+
+      <div className="day-card-date-label">{formatDate(dayDate)}</div>
+
+      <div className="day-card-question-box">
+        <div className="day-card-question-header">
+          <span className="question-title">Daily Questionnaire</span>
+          <span className="question-badge">REQUIRED</span>
+        </div>
+        
+        {status === 'future' ? (
+          <div className="question-timer-overlay">
+            <span className="timer-icon">⏱</span>
+            <span className="timer-text">Unlocks in {formatTimer(timeLeft)}</span>
+          </div>
+        ) : (
+          <div className="question-actions">
+            <button 
+              className="btn-solve-problem" 
+              onClick={handleClick}
+              disabled={!clickable}
+            >
+              Solve Problem →
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className={`day-card-footer ${cfg.btnClass}`}>
+        {cfg.icon && <span className="footer-icon">{cfg.icon}</span>}
+        {cfg.btn}
+      </div>
+    </div>
   )
 }
