@@ -1,23 +1,32 @@
+function getISTMidnightUTC(d = new Date()) {
+  const date = new Date(d)
+  const options = { timeZone: 'Asia/Kolkata', year: 'numeric', month: 'numeric', day: 'numeric' }
+  const parts = new Intl.DateTimeFormat('en-US', options).formatToParts(date)
+  const p = {}
+  parts.forEach(({ type, value }) => { p[type] = parseInt(value, 10) })
+  // p.month is 1-12
+  return Date.UTC(p.year, p.month - 1, p.day)
+}
+
 /**
  * Returns the challenge day number (1-indexed) for a registration date, as of now.
  * Day 1 = registration day, Day 2 = next day, etc.
+ * Uses IST (Asia/Kolkata) consistently.
  */
 export function getChallengeDay(registrationDate, now = new Date()) {
-  const reg = new Date(registrationDate)
-  const regDay = new Date(reg.getFullYear(), reg.getMonth(), reg.getDate())
-  const today  = new Date(now.getFullYear(), now.getMonth(),  now.getDate())
-  const diffDays = Math.floor((today - regDay) / 86_400_000)
+  const regDay = getISTMidnightUTC(registrationDate)
+  const today = getISTMidnightUTC(now)
+  const diffDays = Math.round((today - regDay) / 86_400_000)
   return Math.max(1, diffDays + 1)
 }
 
 export function isSameCalendarDay(a, b) {
-  const da = new Date(a), db = new Date(b)
-  return da.getFullYear() === db.getFullYear() &&
-         da.getMonth()    === db.getMonth()    &&
-         da.getDate()     === db.getDate()
+  return getISTMidnightUTC(a) === getISTMidnightUTC(b)
 }
 
 export function startOfDay(date = new Date()) {
+  // Not used directly for diffing anymore, but if needed, we return a local date 
+  // that represents the start of the day in local time.
   const d = new Date(date)
   d.setHours(0, 0, 0, 0)
   return d
