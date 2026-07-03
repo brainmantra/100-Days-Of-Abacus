@@ -44,6 +44,20 @@ CREATE TABLE IF NOT EXISTS day_records (
 
 CREATE INDEX IF NOT EXISTS idx_day_records_student ON day_records(student_id);
 CREATE INDEX IF NOT EXISTS idx_day_records_completed ON day_records(completed, completed_at);
+
+-- Questions table (uploaded by admin via Excel)
+CREATE TABLE IF NOT EXISTS questions (
+  id                   SERIAL PRIMARY KEY,
+  level                VARCHAR(20) NOT NULL,
+  day_number           INTEGER NOT NULL,
+  question_text        TEXT NOT NULL,
+  question_type        VARCHAR(20) NOT NULL DEFAULT 'math', -- 'math' or 'steps'
+  expected_answer      TEXT NOT NULL,
+  format_example       TEXT,
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_questions_level_day ON questions(level, day_number);
 `
 
 async function migrate() {

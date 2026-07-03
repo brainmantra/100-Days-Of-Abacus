@@ -167,8 +167,13 @@ export default function DayModal() {
     
     // Evaluate answer
     let isCorrect = true
-    if (currentQ.computedAnswer !== null) {
-      isCorrect = parseFloat(currentAnswer.trim()) === parseFloat(currentQ.computedAnswer)
+    if (currentQ.computedAnswer !== null && currentQ.computedAnswer !== undefined) {
+      if (currentQ.type === 'steps') {
+        const normalize = (str) => String(str).toLowerCase().replace(/\s+/g, '')
+        isCorrect = normalize(currentAnswer) === normalize(currentQ.computedAnswer)
+      } else {
+        isCorrect = parseFloat(currentAnswer.trim()) === parseFloat(currentQ.computedAnswer)
+      }
     }
 
     setAnswerFeedback(isCorrect ? 'correct' : 'incorrect')
@@ -188,7 +193,7 @@ export default function DayModal() {
       entryId: currentQ.entryId,
       value: currentAnswer.trim(),
       isCorrect,
-      isMath: currentQ.computedAnswer !== null,
+      isMath: currentQ.computedAnswer !== null && currentQ.computedAnswer !== undefined,
       computedAnswer: currentQ.computedAnswer,
       title: currentQ.title
     }]
@@ -332,6 +337,13 @@ export default function DayModal() {
             <div className="test-question-box">
               {renderQuestionTitle(currentQ.title)}
             </div>
+            
+            {currentQ.formatExample && (
+              <div style={{ color: '#a37ba8', fontSize: '13px', marginBottom: '8px', textAlign: 'center' }}>
+                Format example: {currentQ.formatExample}
+              </div>
+            )}
+
             <input
               type="text"
               className={`test-input ${answerFeedback ? 'feedback-' + answerFeedback : ''}`}

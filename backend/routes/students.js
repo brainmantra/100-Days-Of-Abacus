@@ -188,27 +188,28 @@ if (pool) {
   })
 }
 
-// ── Form Proxy ───────────────────────────────────────────────────────────
+// ── Question Fetching ───────────────────────────────────────────────────────────
 router.get('/:id/progress/:dayNumber/questions', async (req, res) => {
   try {
     const student = await getStudentById(parseInt(req.params.id, 10))
     if (!student) return res.status(404).json({ message: 'Student not found.' })
 
     const dayNumber = parseInt(req.params.dayNumber, 10)
-    const levelMatch = student.level.match(/\d+/)
-    const numericLevel = levelMatch ? parseInt(levelMatch[0], 10) : 1
     
-    const url = getFormUrl(numericLevel, dayNumber)
-    if (!url) {
-      return res.status(404).json({ message: 'Form not found for this day.' })
+    // Fetch questions from DB instead of Google Forms
+    const { rows: questions } = await pool.query(
+      `SELECT id, question_text AS title, question_type AS type, expected_answer AS "computedAnswer", format_example AS "formatExample"
+       FROM questions 
+       WHERE level = $1 AND day_number = $2
+       ORDER BY id ASC`,
+      [student.level, dayNumber]
+    )
+
+    if (questions.length === 0) {
+      return res.status(404).json({ message: 'Questions not configured for this day.' })
     }
 
-    const formData = await fetchAndParseForm(url)
-    if (!formData) {
-      return res.status(500).json({ message: 'Could not parse Google Form.' })
-    }
-
-    res.json(formData)
+    res.json({ questions, submitUrl: '' })
   } catch (err) {
     console.error('[questions] Error:', err)
     res.status(500).json({ message: 'Server error fetching questions.' })
@@ -219,43 +220,25 @@ router.post('/:id/progress/:dayNumber/submit', async (req, res) => {
   try {
     const studentId = parseInt(req.params.id, 10)
     const dayNumber = parseInt(req.params.dayNumber, 10)
-    const { submitUrl, answers, questionTimes, totalTimeSeconds, xpEarned, accuracy } = req.body
+    const { answers, questionTimes, totalTimeSeconds, xpEarned, accuracy } = req.body
 
     const student = await getStudentById(studentId)
     if (!student) return res.status(404).json({ message: 'Student not found.' })
 
-    // Build form data
-    const formBody = new URLSearchParams()
-    // Find the Name field and add student name if they have it (optional, some forms ask for it)
-    answers.forEach(ans => {
-      formBody.append(`entry.${ans.entryId}`, ans.value)
-    })
-
-    // Add required query params for google form submission via POST
-    formBody.append('fvv', '1')
-    formBody.append('pageHistory', '0')
-
-    // Submit to Google Forms secretly!
-    const response = await fetch(submitUrl, {
-      method: 'POST',
-      body: formBody,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
-    })
-    
-    // Save the metrics in day_records
+    // Save the metrics directly to day_records (no google forms submission)
     await pool.query(
-      `INSERT INTO day_records (student_id, day_number, time_taken_seconds, question_times, answers, xp_earned, accuracy)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO day_records (student_id, day_number, time_taken_seconds, question_times, answers, xp_earned, accuracy, completed, completed_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE, NOW(), NOW())
        ON CONFLICT (student_id, day_number)
        DO UPDATE SET 
-         time_taken_seconds = $3, 
-         question_times = $4, 
-         answers = $5, 
-         xp_earned = $6, 
-         accuracy = $7, 
-         updated_at = NOW()`,
+          time_taken_seconds = EXCLUDED.time_taken_seconds,
+          question_times = EXCLUDED.question_times,
+          answers = EXCLUDED.answers,
+          xp_earned = EXCLUDED.xp_earned,
+          accuracy = EXCLUDED.accuracy,
+          completed = TRUE,
+          completed_at = NOW(),
+          updated_at = NOW()`,
       [studentId, dayNumber, totalTimeSeconds, JSON.stringify(questionTimes), JSON.stringify(answers), xpEarned || 0, accuracy || 0]
     )
 

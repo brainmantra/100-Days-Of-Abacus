@@ -5,6 +5,7 @@ import studentsRouter    from './routes/students.js'
 import leaderboardRouter from './routes/leaderboard.js'
 import cronRouter        from './routes/cron.js'
 import webhooksRouter    from './routes/webhooks.js'
+import adminRouter       from './routes/admin.js'
 
 const app = express()
 
@@ -25,6 +26,7 @@ app.use('/api/students',    studentsRouter)
 app.use('/api/leaderboard', leaderboardRouter)
 app.use('/api/cron',        cronRouter)
 app.use('/api/webhooks',    webhooksRouter)
+app.use('/api/admin',       adminRouter)
 
 // ── 404 ──────────────────────────────────────────────────────────────────────
 app.use('/api', (req, res) => {

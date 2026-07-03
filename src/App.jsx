@@ -8,6 +8,8 @@ import ChallengePage    from './pages/ChallengePage'
 import DayModal         from './pages/DayModal'
 import LeaderboardPage  from './pages/LeaderboardPage'
 import NotFoundPage     from './pages/NotFoundPage'
+import AdminLogin       from './pages/AdminLogin'
+import AdminDashboard   from './pages/AdminDashboard'
 
 function ProtectedRoute({ children }) {
   const { student, loading } = useAuth()
@@ -28,6 +30,8 @@ function AppRoutes() {
       <Route path="/challenge" element={<ProtectedRoute><ChallengePage /></ProtectedRoute>} />
       <Route path="/challenge/day/:dayNumber" element={<ProtectedRoute><DayModal /></ProtectedRoute>} />
       <Route path="/leaderboard" element={<LeaderboardPage />} />
+      <Route path="/admin"       element={<AdminLogin />} />
+      <Route path="/admin/dashboard" element={<AdminDashboard />} />
       <Route path="*"         element={<NotFoundPage />} />
     </Routes>
   )
