@@ -154,8 +154,8 @@ router.post('/:id/progress/:dayNumber/open', async (req, res) => {
       `SELECT * FROM day_records WHERE student_id = $1 AND day_number = $2`,
       [studentId, dayNumber]
     )
-    if (existing[0]?.opened) {
-      return res.status(409).json({ message: 'This day has already been opened.' })
+    if (existing[0]?.completed) {
+      return res.status(409).json({ message: 'This day has already been completed.' })
     }
 
     // Upsert: insert or mark opened
