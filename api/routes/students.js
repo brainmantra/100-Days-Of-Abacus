@@ -3,6 +3,8 @@ import pool from '../db.js'
 import { getChallengeDay } from '../utils/dateHelpers.js'
 import { recalculateStreak } from '../utils/streak.js'
 import { findInSheet, normaliseLevel } from '../utils/googleSheet.js'
+import { getFormUrl } from '../utils/formsConfig.js'
+import { fetchAndParseForm } from '../utils/formParser.js'
 
 const router = Router()
 
@@ -169,6 +171,84 @@ router.post('/:id/progress/:dayNumber/open', async (req, res) => {
   } catch (err) {
     console.error('[open] Error:', err)
     res.status(500).json({ message: 'Server error opening day.' })
+  }
+})
+
+// ── Migration Check ────────────────────────────────────────────────────────
+// Add question_times column if it doesn't exist (runs once on startup)
+pool.query('ALTER TABLE day_records ADD COLUMN IF NOT EXISTS question_times JSONB;').catch(err => {
+  console.log('[db] Could not add question_times (already exists or DB error):', err.message)
+})
+
+// ── Form Proxy ───────────────────────────────────────────────────────────
+router.get('/:id/progress/:dayNumber/questions', async (req, res) => {
+  try {
+    const student = await getStudentById(parseInt(req.params.id, 10))
+    if (!student) return res.status(404).json({ message: 'Student not found.' })
+
+    const dayNumber = parseInt(req.params.dayNumber, 10)
+    const levelMatch = student.level.match(/\d+/)
+    const numericLevel = levelMatch ? parseInt(levelMatch[0], 10) : 1
+    
+    const url = getFormUrl(numericLevel, dayNumber)
+    if (!url) {
+      return res.status(404).json({ message: 'Form not found for this day.' })
+    }
+
+    const formData = await fetchAndParseForm(url)
+    if (!formData) {
+      return res.status(500).json({ message: 'Could not parse Google Form.' })
+    }
+
+    res.json(formData)
+  } catch (err) {
+    console.error('[questions] Error:', err)
+    res.status(500).json({ message: 'Server error fetching questions.' })
+  }
+})
+
+router.post('/:id/progress/:dayNumber/submit', async (req, res) => {
+  try {
+    const studentId = parseInt(req.params.id, 10)
+    const dayNumber = parseInt(req.params.dayNumber, 10)
+    const { submitUrl, answers, questionTimes, totalTimeSeconds } = req.body
+
+    const student = await getStudentById(studentId)
+    if (!student) return res.status(404).json({ message: 'Student not found.' })
+
+    // Build form data
+    const formBody = new URLSearchParams()
+    // Find the Name field and add student name if they have it (optional, some forms ask for it)
+    answers.forEach(ans => {
+      formBody.append(`entry.${ans.entryId}`, ans.value)
+    })
+
+    // Add required query params for google form submission via POST
+    formBody.append('fvv', '1')
+    formBody.append('pageHistory', '0')
+
+    // Submit to Google Forms secretly!
+    const response = await fetch(submitUrl, {
+      method: 'POST',
+      body: formBody,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    })
+    
+    // Save the time metrics in day_records
+    await pool.query(
+      `INSERT INTO day_records (student_id, day_number, time_taken_seconds, question_times)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (student_id, day_number)
+       DO UPDATE SET time_taken_seconds = $3, question_times = $4, updated_at = NOW()`,
+      [studentId, dayNumber, totalTimeSeconds, JSON.stringify(questionTimes)]
+    )
+
+    res.json({ success: true })
+  } catch (err) {
+    console.error('[submit] Error:', err)
+    res.status(500).json({ message: 'Server error submitting form.' })
   }
 })
 

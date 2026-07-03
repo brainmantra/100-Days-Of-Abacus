@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS day_records (
   completed            BOOLEAN     NOT NULL DEFAULT FALSE,
   completed_at         TIMESTAMPTZ,
   accuracy             NUMERIC(5,2),          -- 0.00–100.00, set via Apps Script webhook
-  time_taken_seconds   INTEGER,               -- set via Apps Script webhook
+  time_taken_seconds   INTEGER,               -- total time
+  question_times       JSONB,                 -- array of per-question times
   created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (student_id, day_number)
