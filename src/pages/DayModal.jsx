@@ -273,7 +273,7 @@ export default function DayModal() {
           <div className="test-timer-bar-wrap">
             <div 
               className="test-timer-bar-fill" 
-              style={{ width: \`\${100 - timerPct}%\`, backgroundColor: timerColor }}
+              style={{ width: `${100 - timerPct}%`, backgroundColor: timerColor }}
             />
           </div>
           
