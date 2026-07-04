@@ -1,0 +1,438 @@
+import { useEffect, useState, useRef } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import api from '../utils/api'
+import toast from 'react-hot-toast'
+import confetti from 'canvas-confetti'
+import { checkAnswer, formatAnswer } from '../utils/answerChecker'
+import AbacusCard from '../components/AbacusCard'
+import SectionTimer, { formatSectionTime } from '../components/SectionTimer'
+
+const SECTION_LABELS = {
+  abacus:            '🧮 Abacus',
+  visual:            '👁 Visual',
+  multiplication:    '✖ Multiplication',
+  division:          '➗ Division',
+  tables:            '📋 Tables',
+  form_the_question: '✏ Form The Question',
+  teacher_input:     '👨‍🏫 Teacher Section',
+  teacher_day:       '🌟 Special Day',
+}
+
+export default function SectionAttemptPage() {
+  const { dayNumber, section } = useParams()
+  const dayNum = parseInt(dayNumber, 10)
+  const { student } = useAuth()
+  const navigate = useNavigate()
+
+  const [phase, setPhase] = useState('loading')     // loading|countdown|attempt|submitting|done|error
+  const [questions, setQuestions] = useState([])
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [answer, setAnswer] = useState('')
+  const [responses, setResponses] = useState([])
+  const [feedback, setFeedback] = useState(null)    // null|'correct'|'incorrect'
+  const [sectionSeconds, setSectionSeconds] = useState(0)
+  const [timerRunning, setTimerRunning] = useState(false)
+  const [countdown, setCountdown] = useState(3)
+  const [showXp, setShowXp] = useState(false)
+  const [lastXp, setLastXp] = useState(0)
+  const [totalXp, setTotalXp] = useState(0)
+
+  const questionStartRef = useRef(Date.now())
+
+  // Open section & fetch questions
+  useEffect(() => {
+    let mounted = true
+    async function init() {
+      try {
+        // Mark section as opened (one-time)
+        try {
+          await api.post(`/students/${student.id}/progress/${dayNum}/sections/${section}/open`)
+        } catch (e) {
+          if (e.response?.status === 409) {
+            // Already opened and done — redirect back
+            toast('This section is already completed.', { icon: '✓' })
+            navigate(`/challenge/day/${dayNum}/sections`)
+            return
+          }
+        }
+
+        const res = await api.get(`/students/${student.id}/progress/${dayNum}/sections/${section}/questions`)
+        if (!mounted) return
+
+        if (res.data.teacherNotReady) {
+          toast("Today's question isn't ready yet.")
+          navigate(`/challenge/day/${dayNum}/sections`)
+          return
+        }
+
+        setQuestions(res.data.questions || [])
+        setPhase('countdown')
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Could not load questions.')
+        navigate(`/challenge/day/${dayNum}/sections`)
+      }
+    }
+    init()
+    return () => { mounted = false }
+  }, [dayNum, section, student, navigate])
+
+  // Countdown 3-2-1-GO!
+  useEffect(() => {
+    if (phase !== 'countdown') return
+    let c = 3
+    setCountdown(c)
+    const iv = setInterval(() => {
+      c--
+      if (c > 0) setCountdown(c)
+      else if (c === 0) setCountdown('GO! 🚀')
+      else {
+        clearInterval(iv)
+        questionStartRef.current = Date.now()
+        setTimerRunning(true)
+        setPhase('attempt')
+      }
+    }, 1000)
+    return () => clearInterval(iv)
+  }, [phase])
+
+  const currentQ = questions[currentIndex]
+
+  const getQuestionType = (q) => {
+    return q?.question_type || 'add'
+  }
+
+  const buildSnapshot = (q) => {
+    const type = getQuestionType(q)
+    if (type === 'add' || type === 'visual') {
+      const addends = Array.isArray(q.addends) ? q.addends : JSON.parse(q.addends || '[]')
+      return addends.map((n, i) => `${i === 0 ? '' : n < 0 ? '− ' : '+ '}${Math.abs(n)}`).join(' ')
+    }
+    if (type === 'mul_x' || type === 'mul_div') {
+      return `${q.operand1} ${q.operator} ${q.operand2}`
+    }
+    return q.question_text || q.display_text || ''
+  }
+
+  const handleNext = () => {
+    if (!answer.trim()) {
+      toast.error('Please enter an answer.')
+      return
+    }
+    if (feedback) return  // prevent double submit during animation
+
+    const timeTaken = (Date.now() - questionStartRef.current) / 1000
+    const qType = getQuestionType(currentQ)
+    const correctAns = currentQ.answer ?? currentQ.computedAnswer ?? currentQ.correct_answer
+    const isCorrect = checkAnswer(answer, correctAns, qType)
+
+    setFeedback(isCorrect ? 'correct' : 'incorrect')
+
+    const xp = isCorrect ? 10 : 0
+    if (isCorrect) {
+      setLastXp(xp)
+      setTotalXp(prev => prev + xp)
+      setShowXp(true)
+      setTimeout(() => setShowXp(false), 900)
+    }
+
+    const resp = {
+      question_id: currentQ.id,
+      question_snapshot: buildSnapshot(currentQ),
+      correct_answer: correctAns,
+      student_answer: answer.trim(),
+      is_correct: isCorrect,
+      time_taken_seconds: parseFloat(timeTaken.toFixed(2)),
+    }
+
+    const newResponses = [...responses, resp]
+    setResponses(newResponses)
+
+    setTimeout(() => {
+      setFeedback(null)
+      setAnswer('')
+      if (currentIndex < questions.length - 1) {
+        setCurrentIndex(i => i + 1)
+        questionStartRef.current = Date.now()
+      } else {
+        // Done — submit section
+        setTimerRunning(false)
+        submitSection(newResponses)
+      }
+    }, 700)
+  }
+
+  const submitSection = async (finalResponses) => {
+    setPhase('submitting')
+    try {
+      await api.post(`/students/${student.id}/progress/${dayNum}/sections/${section}/submit`, {
+        responses: finalResponses,
+        timeTakenSeconds: sectionSeconds,
+      })
+      confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } })
+      setPhase('done')
+    } catch (err) {
+      toast.error('Could not save section. Please try again.')
+      setPhase('error')
+    }
+  }
+
+  /* ── Renders ── */
+  if (phase === 'loading') {
+    return (
+      <div className="loading-screen">
+        <div className="spinner" />
+        <p>Loading questions...</p>
+      </div>
+    )
+  }
+
+  if (phase === 'countdown') {
+    return (
+      <div className="modal-overlay">
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            fontSize: '8rem', fontFamily: 'var(--font-display)', fontWeight: 900,
+            color: 'var(--primary-light)',
+            textShadow: '0 0 60px var(--primary-glow)',
+            animation: 'popIn 0.5s ease forwards',
+          }}>
+            {countdown}
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginTop: '1rem' }}>
+            {SECTION_LABELS[section] || section}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (phase === 'submitting') {
+    return (
+      <div className="loading-screen">
+        <div className="spinner" />
+        <p>Saving your answers...</p>
+      </div>
+    )
+  }
+
+  if (phase === 'done') {
+    const correct = responses.filter(r => r.is_correct).length
+    const acc = responses.length > 0 ? Math.round((correct / responses.length) * 100) : 0
+    return (
+      <div className="page page-bg-dots" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div className="card animate-pop" style={{ maxWidth: 420, width: '100%', margin: '2rem', textAlign: 'center', padding: '2.5rem' }}>
+          <div style={{ fontSize: '3.5rem', marginBottom: '0.75rem' }}>✅</div>
+          <h2 className="gradient-text" style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>
+            Section Complete!
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+            {SECTION_LABELS[section]}
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
+            <div className="report-metric">
+              <div className="report-metric__val" style={{ color: 'var(--success)' }}>{correct}</div>
+              <div className="report-metric__label">Correct</div>
+            </div>
+            <div className="report-metric">
+              <div className="report-metric__val">{acc}%</div>
+              <div className="report-metric__label">Accuracy</div>
+            </div>
+            <div className="report-metric">
+              <div className="report-metric__val" style={{ color: 'var(--accent-gold)' }}>{totalXp}</div>
+              <div className="report-metric__label">XP Earned</div>
+            </div>
+          </div>
+
+          <button
+            className="btn btn-primary btn-block"
+            onClick={() => navigate(`/challenge/day/${dayNum}/sections`)}
+          >
+            Back to Paper →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (phase === 'error') {
+    return (
+      <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div className="card" style={{ textAlign: 'center', maxWidth: 380, margin: '2rem' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
+          <h3>Something went wrong</h3>
+          <p style={{ color: 'var(--text-muted)', margin: '1rem 0 1.5rem' }}>
+            Could not save your responses.
+          </p>
+          <button className="btn btn-primary" onClick={() => navigate(`/challenge/day/${dayNum}/sections`)}>
+            Back to Paper
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Attempt phase ──
+  if (!currentQ) return null
+
+  const qType = getQuestionType(currentQ)
+  const isAddType = qType === 'add' || qType === 'visual'
+  const isMulDiv = qType === 'mul_x' || qType === 'mul_div'
+  const isTeacher = qType === 'teacher'
+
+  const addends = isAddType
+    ? (Array.isArray(currentQ.addends) ? currentQ.addends : JSON.parse(currentQ.addends || '[]'))
+    : []
+
+  return (
+    <div className="page page-bg-dots" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+
+      {/* Timer side-effect */}
+      <SectionTimer running={timerRunning} onTick={setSectionSeconds} />
+
+      {/* Top bar */}
+      <div style={{
+        background: 'rgba(10,13,20,0.9)',
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid var(--border)',
+        padding: '0.75rem 1.5rem',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+            {SECTION_LABELS[section] || section}
+          </span>
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+            Q{currentIndex + 1} / {questions.length}
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          {/* Timer */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-secondary)', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }}>
+            ⏱ {formatSectionTime(sectionSeconds)}
+          </div>
+
+          {/* XP */}
+          <div style={{ position: 'relative' }}>
+            <div style={{
+              background: 'var(--primary-glow)',
+              border: '1px solid var(--primary)',
+              borderRadius: 'var(--radius-full)',
+              padding: '3px 12px',
+              fontSize: '0.85rem', fontWeight: 700,
+              color: 'var(--primary-light)',
+              fontFamily: 'var(--font-display)',
+            }}>
+              ⚡ {totalXp} XP
+            </div>
+            {showXp && (
+              <div className="xp-float" style={{ top: '-2rem', left: '50%', transform: 'translateX(-50%)' }}>
+                +{lastXp}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ height: '4px', background: 'var(--border)' }}>
+        <div style={{
+          height: '100%',
+          width: `${((currentIndex) / questions.length) * 100}%`,
+          background: 'linear-gradient(90deg, var(--primary), var(--accent-teal))',
+          transition: 'width 0.5s ease',
+        }} />
+      </div>
+
+      {/* Main question area */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
+
+        {/* Abacus / Visual */}
+        {isAddType && (
+          <AbacusCard
+            questionNum={currentIndex + 1}
+            addends={addends}
+            value={answer}
+            onChange={setAnswer}
+            onSubmit={handleNext}
+            feedback={feedback}
+            disabled={!!feedback}
+          />
+        )}
+
+        {/* Multiplication / Division */}
+        {isMulDiv && (
+          <div className="mul-card animate-pop">
+            <span className="mul-card__operand">{currentQ.operand1}</span>
+            <span className="mul-card__operator">{currentQ.operator}</span>
+            <span className="mul-card__operand">{currentQ.operand2}</span>
+            <span className="mul-card__eq">=</span>
+            <input
+              className={`mul-card__input${feedback ? ` ${feedback}` : ''}`}
+              type="text"
+              inputMode="numeric"
+              placeholder="?"
+              value={answer}
+              onChange={e => setAnswer(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleNext()}
+              disabled={!!feedback}
+              autoFocus
+              autoComplete="off"
+            />
+          </div>
+        )}
+
+        {/* Teacher / free-text */}
+        {isTeacher && (
+          <div className="card animate-pop" style={{ maxWidth: 520, width: '100%', padding: '2rem' }}>
+            <div style={{
+              fontSize: '1.3rem', fontFamily: 'var(--font-display)', fontWeight: 600,
+              textAlign: 'center', marginBottom: '1.5rem', lineHeight: 1.5,
+              color: 'var(--text-primary)',
+            }}>
+              {currentQ.question_text || currentQ.display_text}
+            </div>
+            <input
+              type="text"
+              placeholder="Your answer..."
+              value={answer}
+              onChange={e => setAnswer(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleNext()}
+              disabled={!!feedback}
+              className={feedback ? `feedback-${feedback}` : ''}
+              autoFocus
+            />
+          </div>
+        )}
+
+        {/* Feedback overlay on card */}
+        {feedback && (
+          <div style={{
+            marginTop: '1rem',
+            padding: '0.5rem 1.5rem',
+            borderRadius: 'var(--radius-full)',
+            background: feedback === 'correct' ? 'var(--success-bg)' : 'var(--error-bg)',
+            color: feedback === 'correct' ? 'var(--success)' : 'var(--error)',
+            fontWeight: 700, fontSize: '0.95rem',
+            animation: 'slideDown 0.2s ease',
+          }}>
+            {feedback === 'correct' ? '✓ Correct!' : `✗ Correct: ${formatAnswer(currentQ.answer ?? currentQ.computedAnswer)}`}
+          </div>
+        )}
+
+        {/* Next button */}
+        <div style={{ marginTop: '1.5rem', width: '100%', maxWidth: 380 }}>
+          <button
+            className="btn btn-primary btn-block btn-lg"
+            onClick={handleNext}
+            disabled={!!feedback || !answer.trim()}
+          >
+            {currentIndex === questions.length - 1 ? '✓ Finish Section' : 'Next →'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}

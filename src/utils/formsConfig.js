@@ -1,27 +1,3 @@
-/**
- * FORMS CONFIGURATION
- * ===================
- * Each level has exactly 100 Google Form embed URLs — one per challenge day.
- *
- * HOW TO GET AN EMBED URL FOR A GOOGLE FORM:
- *   1. Open the Google Form.
- *   2. Click "Send" (top-right).
- *   3. Click the "<>" (Embed) tab.
- *   4. Copy the URL from the src="..." attribute in the iframe code.
- *      It ends with: ?embedded=true
- *
- * HOW TO FILL THIS FILE:
- *   - Replace every 'null' with the matching form's embed URL string.
- *   - Day index is 1-based: forms[0] = Day 1, forms[99] = Day 100.
- *   - If a particular day's form is the same as the previous day, just
- *     repeat that URL. Never leave null in production — DayModal will
- *     show an error message if the URL for the current day is null.
- *
- * EXAMPLE (one entry):
- *   'https://docs.google.com/forms/d/e/1FAIpQLSc.../viewform?embedded=true'
- */
-
-
 export const LEVELS = [
   { id: '1',     label: '1',     description: 'Level 1' },
   { id: '2',     label: '2',     description: 'Level 2' },

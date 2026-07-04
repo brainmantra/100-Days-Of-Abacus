@@ -24,7 +24,7 @@ export default function DayCard({ dayNumber, registrationDate, dayRecord }) {
 
   const handleClick = () => {
     if (!clickable) return
-    navigate(`/challenge/day/${dayNumber}`)
+    navigate(`/challenge/day/${dayNumber}/sections`)
   }
 
   // Timer logic for next day

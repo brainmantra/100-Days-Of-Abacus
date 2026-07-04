@@ -5,16 +5,21 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start":   "node server.js",
-    "dev":     "node --watch server.js",
+    "start": "node server.js",
+    "dev": "node --watch server.js",
     "migrate": "node migrate.js"
   },
   "dependencies": {
-    "cors":        "^2.8.5",
-    "csv-parse":   "^5.6.0",
-    "dotenv":      "^16.4.5",
-    "express":     "^4.21.0",
-    "node-cron":   "^3.0.3",
-    "pg":          "^8.13.3"
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "csv-parse": "^5.6.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "express-rate-limit": "^8.5.2",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.2.0",
+    "node-cron": "^3.0.3",
+    "pg": "^8.13.3",
+    "xlsx": "^0.18.5"
   }
 }

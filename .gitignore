@@ -53,3 +53,8 @@ logs/
 api/.env
 .env.local
 google-credentials.json
+
+# ── Question bank (proprietary — do not commit) ───────────────────────────────
+*.xls
+*.xlsx
+Magic_QP_with_paper_no__2023.xls

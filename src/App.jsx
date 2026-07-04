@@ -2,22 +2,31 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
-import LoginPage        from './pages/LoginPage'
-import WelcomePage      from './pages/WelcomePage'
-import ChallengePage    from './pages/ChallengePage'
-import DayModal         from './pages/DayModal'
-import LeaderboardPage  from './pages/LeaderboardPage'
-import NotFoundPage     from './pages/NotFoundPage'
-import AdminLogin       from './pages/AdminLogin'
-import AdminDashboard   from './pages/AdminDashboard'
+// Student pages
+import LoginPage           from './pages/LoginPage'
+import WelcomePage         from './pages/WelcomePage'
+import ChallengePage       from './pages/ChallengePage'
+import SectionListPage     from './pages/SectionListPage'
+import SectionAttemptPage  from './pages/SectionAttemptPage'
+import PerformanceReportPage from './pages/PerformanceReportPage'
+import LeaderboardPage     from './pages/LeaderboardPage'
+import NotFoundPage        from './pages/NotFoundPage'
+
+// Staff pages
+import AdminLogin          from './pages/AdminLogin'
+import AdminDashboard      from './pages/AdminDashboard'
+import TeacherLogin        from './pages/TeacherLogin'
+import TeacherDashboard    from './pages/TeacherDashboard'
 
 function ProtectedRoute({ children }) {
   const { student, loading } = useAuth()
-  if (loading) return (
-    <div style={{ display:'flex', justifyContent:'center', alignItems:'center', height:'100vh' }}>
-      <div className="spinner" />
-    </div>
-  )
+  if (loading) {
+    return (
+      <div className="loading-screen">
+        <div className="spinner" />
+      </div>
+    )
+  }
   if (!student) return <Navigate to="/" replace />
   return children
 }
@@ -25,14 +34,27 @@ function ProtectedRoute({ children }) {
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/"         element={<LoginPage />} />
-      <Route path="/welcome"  element={<ProtectedRoute><WelcomePage /></ProtectedRoute>} />
-      <Route path="/challenge" element={<ProtectedRoute><ChallengePage /></ProtectedRoute>} />
-      <Route path="/challenge/day/:dayNumber" element={<ProtectedRoute><DayModal /></ProtectedRoute>} />
+      {/* Student */}
+      <Route path="/"           element={<LoginPage />} />
+      <Route path="/welcome"    element={<ProtectedRoute><WelcomePage /></ProtectedRoute>} />
+      <Route path="/challenge"  element={<ProtectedRoute><ChallengePage /></ProtectedRoute>} />
+
+      {/* Day → Section List → Section Attempt → Report */}
+      <Route path="/challenge/day/:dayNumber/sections"                    element={<ProtectedRoute><SectionListPage /></ProtectedRoute>} />
+      <Route path="/challenge/day/:dayNumber/sections/:section"            element={<ProtectedRoute><SectionAttemptPage /></ProtectedRoute>} />
+      <Route path="/challenge/day/:dayNumber/report"                       element={<ProtectedRoute><PerformanceReportPage /></ProtectedRoute>} />
+
       <Route path="/leaderboard" element={<LeaderboardPage />} />
-      <Route path="/admin"       element={<AdminLogin />} />
+
+      {/* Admin */}
+      <Route path="/admin"           element={<AdminLogin />} />
       <Route path="/admin/dashboard" element={<AdminDashboard />} />
-      <Route path="*"         element={<NotFoundPage />} />
+
+      {/* Teacher */}
+      <Route path="/teacher"           element={<TeacherLogin />} />
+      <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
+
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )
 }
@@ -47,11 +69,13 @@ export default function App() {
             style: {
               fontFamily: 'var(--font-body)',
               borderRadius: 'var(--radius-md)',
-              background: 'var(--navy)',
-              color: 'var(--ivory)',
+              background: 'var(--bg-elevated)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-strong)',
+              boxShadow: 'var(--shadow-lg)',
             },
-            success: { iconTheme: { primary: '#27ae60', secondary: '#fff' } },
-            error:   { iconTheme: { primary: '#e8453c', secondary: '#fff' } },
+            success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
+            error:   { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
           }}
         />
         <AppRoutes />

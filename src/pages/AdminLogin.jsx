@@ -1,53 +1,67 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { adminApi } from '../utils/api'
 import toast from 'react-hot-toast'
-import api from '../utils/api'
 
 export default function AdminLogin() {
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!email || !password) return toast.error('Please fill all fields.')
     setLoading(true)
     try {
-      const res = await api.post('/admin/login', { password })
-      localStorage.setItem('adminToken', res.data.token)
-      toast.success('Admin login successful')
+      const res = await adminApi.post('/admin/login', { email, password })
+      localStorage.setItem('abacus_admin_token', res.data.token)
+      toast.success('Welcome back!')
       navigate('/admin/dashboard')
     } catch (err) {
-      toast.error('Invalid password')
+      toast.error(err.response?.data?.message || 'Invalid credentials.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--navy)' }}>
-      <div style={{ background: 'var(--ivory)', padding: '2rem', borderRadius: '12px', width: '90%', maxWidth: '400px' }}>
-        <h2 style={{ textAlign: 'center', color: 'var(--navy)', marginBottom: '1.5rem' }}>Admin Portal</h2>
-        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--charcoal)', fontWeight: 'bold' }}>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #ccc' }}
-              placeholder="Enter admin password"
-              autoFocus
-            />
+    <div className="page page-bg-dots" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+      <div className="card animate-pop" style={{ maxWidth: 400, width: '100%', margin: '1rem', padding: '2.5rem' }}>
+
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: '50%', margin: '0 auto 1rem',
+            background: 'linear-gradient(135deg, var(--admin-primary), #d4a017)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '2rem',
+            boxShadow: '0 4px 24px var(--admin-glow)',
+          }}>
+            🛡️
           </div>
-          <button
-            type="submit"
-            className="btn btn-primary"
-            style={{ width: '100%' }}
-            disabled={loading || !password}
-          >
-            {loading ? 'Logging in...' : 'Login'}
+          <h1 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Admin Login</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>100 Days of Abacus</p>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">Email</label>
+            <input type="email" placeholder="admin@school.com" value={email} onChange={e => setEmail(e.target.value)} required />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
+          </div>
+          <button type="submit" className="btn btn-admin btn-block btn-lg" disabled={loading}>
+            {loading ? <div className="spinner spinner-sm" /> : 'Sign In →'}
           </button>
         </form>
+
+        <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+          <a href="/teacher" style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            Teacher? Click here →
+          </a>
+        </div>
       </div>
     </div>
   )
