@@ -1,5 +1,5 @@
 /**
- * seed.js — One-time script to populate question_bank from Magic_QP_with_paper_no__2023.xls
+ * seed.js — One-time script to populate question_bank from Magic QP with paper no. 2023.xlsx
  *   cd backend && node seed.js
  *
  * Safe to re-run (upserts on UNIQUE constraint level+section+question_index).
@@ -11,7 +11,7 @@ import * as XLSX from 'xlsx'
 import pool from './db.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const XLS_PATH = path.join(__dirname, '..', 'Magic_QP_with_paper_no__2023.xls')
+const XLS_PATH = path.join(__dirname, '..', 'Magic QP with paper no. 2023.xlsx')
 
 // ── Level-to-sheet mapping ─────────────────────────────────────────────────────
 // For each level: which ADD sheet, split index (abacus/visual boundary), which MUL sheet
