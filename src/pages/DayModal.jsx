@@ -169,7 +169,12 @@ export default function DayModal() {
     let isCorrect = true
     if (currentQ.computedAnswer !== null && currentQ.computedAnswer !== undefined) {
       if (currentQ.type === 'steps') {
-        const normalize = (str) => String(str).toLowerCase().replace(/\s+/g, '')
+        const normalize = (str) => String(str)
+          .toLowerCase()
+          .replace(/\s+/g, '') // remove spaces
+          .replace(/x/g, '*')  // convert 'x' to '*'
+          .replace(/[.,;]$/, '') // remove trailing punctuation
+
         isCorrect = normalize(currentAnswer) === normalize(currentQ.computedAnswer)
       } else {
         isCorrect = parseFloat(currentAnswer.trim()) === parseFloat(currentQ.computedAnswer)
@@ -331,7 +336,7 @@ export default function DayModal() {
               className={`test-input ${answerFeedback ? 'feedback-' + answerFeedback : ''}`}
               autoFocus
               disabled={!!answerFeedback}
-              placeholder="Your answer..."
+              placeholder={currentQ.formatExample ? `e.g. ${currentQ.formatExample}` : 'Your answer...'}
               value={currentAnswer}
               onChange={e => setCurrentAnswer(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleNext()}
