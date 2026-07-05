@@ -14,6 +14,20 @@ export function checkAnswer(studentInput, correctAnswer, questionType) {
   // Teacher-type: case-insensitive string comparison (normalise whitespace)
   if (questionType === 'teacher') {
     const normalize = s => String(s).toLowerCase().replace(/\s+/g, ' ').trim()
+    
+    // Check if JSON arrays (multi-box)
+    try {
+      const parsedStudent = JSON.parse(studentInput)
+      const parsedCorrect = JSON.parse(correctAnswer)
+      
+      if (Array.isArray(parsedStudent) && Array.isArray(parsedCorrect)) {
+        if (parsedStudent.length !== parsedCorrect.length) return false
+        return parsedStudent.every((ans, i) => normalize(ans) === normalize(parsedCorrect[i]))
+      }
+    } catch (e) {
+      // Not JSON, fallback to standard comparison
+    }
+    
     return normalize(studentInput) === normalize(correctAnswer)
   }
 

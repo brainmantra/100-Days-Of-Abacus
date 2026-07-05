@@ -284,19 +284,60 @@ export default function TeacherDashboard() {
               <h3 style={{ marginBottom: '1rem', fontSize: '1rem' }}>Add / Update Question</h3>
               <form onSubmit={handleSaveQuestion}>
                 <div className="form-group">
-                  <label className="form-label">Question Text</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <label className="form-label" style={{ marginBottom: 0 }}>Question Text</label>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => setQText(prev => prev + ' [BOX]')}
+                      style={{ fontSize: '0.8rem', padding: '0.2rem 0.5rem' }}
+                    >
+                      + Insert Box `[BOX]`
+                    </button>
+                  </div>
                   <textarea
-                    rows={3} placeholder="e.g. What is 7 × 8?"
+                    rows={3} placeholder="e.g. What is 7 × 8? Step 1: [BOX]"
                     value={qText} onChange={e => setQText(e.target.value)}
                     style={{ resize: 'vertical', minHeight: 80 }}
                   />
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    Tip: Use `[BOX]` to create input fields for students to fill.
+                  </div>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Correct Answer</label>
-                  <input
-                    type="text" placeholder="e.g. 56"
-                    value={qAnswer} onChange={e => setQAnswer(e.target.value)}
-                  />
+                  <label className="form-label">Correct Answer(s)</label>
+                  {(() => {
+                    const boxCount = (qText.match(/\[BOX\]/g) || []).length;
+                    if (boxCount > 0) {
+                      let parsed = [];
+                      try { parsed = JSON.parse(qAnswer); if (!Array.isArray(parsed)) parsed = []; } catch { parsed = []; }
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {Array.from({ length: boxCount }).map((_, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', width: '60px' }}>Box {i + 1}</span>
+                              <input
+                                type="text" placeholder={`e.g. Answer for box ${i + 1}`}
+                                value={parsed[i] || ''}
+                                onChange={e => {
+                                  const newAns = [...parsed];
+                                  newAns[i] = e.target.value;
+                                  setQAnswer(JSON.stringify(newAns));
+                                }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <input
+                          type="text" placeholder="e.g. 56"
+                          value={qAnswer} onChange={e => setQAnswer(e.target.value)}
+                        />
+                      );
+                    }
+                  })()}
                 </div>
                 <button type="submit" className="btn btn-teacher" disabled={qSaving}>
                   {qSaving ? <><div className="spinner spinner-sm" /> Saving...</> : '💾 Save Question'}

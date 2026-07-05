@@ -114,10 +114,23 @@ export default function SectionAttemptPage() {
     return q.question_text || q.display_text || ''
   }
 
+  const getQuestionText = (q) => q?.question_text || q?.display_text || ''
+  const isMultiBox = (getQuestionText(currentQ).match(/\[BOX\]/g) || []).length > 0
+
   const handleNext = () => {
-    if (!answer.trim()) {
-      toast.error('Please enter an answer.')
-      return
+    if (isMultiBox) {
+      let parsed = []
+      try { parsed = JSON.parse(answer) } catch {}
+      const boxesCount = (getQuestionText(currentQ).match(/\[BOX\]/g) || []).length
+      if (!Array.isArray(parsed) || parsed.length < boxesCount || parsed.some(v => !v || !String(v).trim())) {
+        toast.error('Please fill in all boxes.')
+        return
+      }
+    } else {
+      if (!String(answer).trim()) {
+        toast.error('Please enter an answer.')
+        return
+      }
     }
     if (feedback) return  // prevent double submit during animation
 
@@ -387,23 +400,65 @@ export default function SectionAttemptPage() {
         {/* Teacher / free-text */}
         {isTeacher && (
           <div className="card animate-pop" style={{ maxWidth: 520, width: '100%', padding: '2rem' }}>
-            <div style={{
-              fontSize: '1.3rem', fontFamily: 'var(--font-display)', fontWeight: 600,
-              textAlign: 'center', marginBottom: '1.5rem', lineHeight: 1.5,
-              color: 'var(--text-primary)',
-            }}>
-              {currentQ.question_text || currentQ.display_text}
-            </div>
-            <input
-              type="text"
-              placeholder="Your answer..."
-              value={answer}
-              onChange={e => setAnswer(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleNext()}
-              disabled={!!feedback}
-              className={feedback ? `feedback-${feedback}` : ''}
-              autoFocus
-            />
+            {isMultiBox ? (
+              <div style={{
+                fontSize: '1.3rem', fontFamily: 'var(--font-display)', fontWeight: 600,
+                textAlign: 'center', lineHeight: 2,
+                color: 'var(--text-primary)',
+              }}>
+                {(() => {
+                  const qText = getQuestionText(currentQ);
+                  const parts = qText.split(/\[BOX\]/g);
+                  let parsed = [];
+                  try { parsed = JSON.parse(answer); if(!Array.isArray(parsed)) parsed = []; } catch { parsed = []; }
+                  
+                  return parts.map((part, idx) => (
+                    <span key={idx}>
+                      {part}
+                      {idx < parts.length - 1 && (
+                        <input
+                          type="text"
+                          className={feedback ? `feedback-${feedback}` : ''}
+                          style={{
+                            width: '80px', textAlign: 'center', display: 'inline-block', margin: '0 0.5rem',
+                            padding: '0.2rem', fontSize: '1.1rem'
+                          }}
+                          value={parsed[idx] || ''}
+                          onChange={e => {
+                            const newAns = [...parsed];
+                            newAns[idx] = e.target.value;
+                            setAnswer(JSON.stringify(newAns));
+                          }}
+                          onKeyDown={e => e.key === 'Enter' && handleNext()}
+                          disabled={!!feedback}
+                          autoFocus={idx === 0}
+                        />
+                      )}
+                    </span>
+                  ));
+                })()}
+              </div>
+            ) : (
+              <>
+                <div style={{
+                  fontSize: '1.3rem', fontFamily: 'var(--font-display)', fontWeight: 600,
+                  textAlign: 'center', marginBottom: '1.5rem', lineHeight: 1.5,
+                  color: 'var(--text-primary)',
+                }}>
+                  {getQuestionText(currentQ)}
+                </div>
+                <input
+                  type="text"
+                  placeholder="Your answer..."
+                  value={answer}
+                  onChange={e => setAnswer(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleNext()}
+                  disabled={!!feedback}
+                  className={feedback ? `feedback-${feedback}` : ''}
+                  autoFocus
+                />
+              </>
+            )}
           </div>
         )}
 
