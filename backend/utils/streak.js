@@ -34,14 +34,27 @@ export async function recalculateStreak(studentId, registrationDate, now = new D
     }
   }
 
-  // Persist updated values
-  await pool.query(
-    `UPDATE students
-        SET streak = $1, longest_streak = GREATEST(longest_streak, $2),
-            last_streak_check = NOW(), updated_at = NOW()
-      WHERE id = $3`,
-    [runningStreak, longest, studentId]
-  )
+  // Persist updated values — wrapped in try/catch so missing columns
+  // (e.g. updated_at not yet migrated on prod DB) don't crash the caller
+  try {
+    await pool.query(
+      `UPDATE students
+          SET streak = $1, longest_streak = GREATEST(longest_streak, $2),
+              last_streak_check = NOW(), updated_at = NOW()
+        WHERE id = $3`,
+      [runningStreak, longest, studentId]
+    )
+  } catch {
+    // Fallback: update only the core streak columns if updated_at is missing
+    try {
+      await pool.query(
+        `UPDATE students SET streak = $1, longest_streak = GREATEST(longest_streak, $2) WHERE id = $3`,
+        [runningStreak, longest, studentId]
+      )
+    } catch (e2) {
+      console.error('[streak] Could not persist streak update:', e2.message)
+    }
+  }
 
   return { streak: runningStreak, longestStreak: longest }
 }
