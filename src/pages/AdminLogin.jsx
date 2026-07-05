@@ -57,10 +57,13 @@ export default function AdminLogin() {
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+        <div style={{ textAlign: 'center', marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <a href="/teacher" style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
             Teacher? Click here →
           </a>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => navigate('/')} style={{ alignSelf: 'center', color: 'var(--text-secondary)' }}>
+            ← Back to Main
+          </button>
         </div>
       </div>
     </div>
