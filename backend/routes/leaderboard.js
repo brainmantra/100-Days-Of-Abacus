@@ -51,17 +51,21 @@ router.get('/weekly', async (req, res) => {
 
     // Add rank
     const ranked = rows.map((r, i) => ({
-      ...r,
+      id: r.id,
+      name: r.name,
+      level: r.level,
+      streak: r.streak,
       rank: i + 1,
-      weekly_accuracy: parseFloat(parseFloat(r.weekly_accuracy).toFixed(1)),
-      avg_time_per_question: parseFloat(parseFloat(r.avg_time_per_question).toFixed(1)),
+      accuracy: parseFloat(parseFloat(r.weekly_accuracy).toFixed(1)),
+      avgTime: parseFloat(parseFloat(r.avg_time_per_question).toFixed(1)),
       weekly_xp: parseInt(r.weekly_xp),
       days_this_week: parseInt(r.days_this_week),
     }))
 
     res.json({
       weekStart: weekStart.toISOString(),
-      leaderboard: ranked,
+      weekLabel: `Week of ${weekStart.toLocaleDateString()}`,
+      leaders: ranked,
       top3: ranked.slice(0, 3),
     })
   } catch (err) {
