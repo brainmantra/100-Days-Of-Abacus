@@ -331,16 +331,28 @@ export default function DayModal() {
               </div>
             )}
 
-            <input
-              type="text"
-              className={`test-input ${answerFeedback ? 'feedback-' + answerFeedback : ''}`}
-              autoFocus
-              disabled={!!answerFeedback}
-              placeholder={currentQ.formatExample ? `e.g. ${currentQ.formatExample}` : 'Your answer...'}
-              value={currentAnswer}
-              onChange={e => setCurrentAnswer(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleNext()}
-            />
+            {currentQ.type === 'paragraph' ? (
+              <textarea
+                className={`test-input ${answerFeedback ? 'feedback-' + answerFeedback : ''}`}
+                style={{ width: '100%', minHeight: '100px', resize: 'vertical', background: 'transparent', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '4px', padding: '0.5rem' }}
+                autoFocus
+                disabled={!!answerFeedback}
+                placeholder={currentQ.formatExample ? `e.g. ${currentQ.formatExample}` : 'Your answer...'}
+                value={currentAnswer}
+                onChange={e => setCurrentAnswer(e.target.value)}
+              />
+            ) : (
+              <input
+                type="text"
+                className={`test-input ${answerFeedback ? 'feedback-' + answerFeedback : ''}`}
+                autoFocus
+                disabled={!!answerFeedback}
+                placeholder={currentQ.formatExample ? `e.g. ${currentQ.formatExample}` : 'Your answer...'}
+                value={currentAnswer}
+                onChange={e => setCurrentAnswer(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleNext()}
+              />
+            )}
           </div>
 
           <div className="test-footer">

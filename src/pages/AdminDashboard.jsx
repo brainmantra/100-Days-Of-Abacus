@@ -579,18 +579,28 @@ function QuestionBuilderTab() {
                         <select value={q.question_type} onChange={e => updateQuestion(q.id, 'question_type', e.target.value)} style={{ padding: '0.6rem', borderRadius: '4px' }}>
                           <option value="math">Short Answer (Math)</option>
                           <option value="steps">Steps (String Matching)</option>
+                          <option value="paragraph">Paragraph</option>
                         </select>
                       </div>
                     </div>
 
                     <div>
-                      <input 
-                        type="text" 
-                        placeholder="Expected Answer" 
-                        style={{ width: '100%', padding: '0.6rem', borderBottom: '1px solid var(--border)', borderTop: 'none', borderLeft: 'none', borderRight: 'none', background: 'transparent', color: 'var(--text-main)', outline: 'none' }}
-                        value={q.expected_answer}
-                        onChange={e => updateQuestion(q.id, 'expected_answer', e.target.value)}
-                      />
+                      {q.question_type === 'paragraph' ? (
+                        <textarea
+                          placeholder="Expected Answer (Paragraph)"
+                          style={{ width: '100%', padding: '0.6rem', borderBottom: '1px solid var(--border)', borderTop: 'none', borderLeft: 'none', borderRight: 'none', background: 'transparent', color: 'var(--text-main)', outline: 'none', minHeight: '60px', resize: 'vertical' }}
+                          value={q.expected_answer}
+                          onChange={e => updateQuestion(q.id, 'expected_answer', e.target.value)}
+                        />
+                      ) : (
+                        <input 
+                          type="text" 
+                          placeholder="Expected Answer" 
+                          style={{ width: '100%', padding: '0.6rem', borderBottom: '1px solid var(--border)', borderTop: 'none', borderLeft: 'none', borderRight: 'none', background: 'transparent', color: 'var(--text-main)', outline: 'none' }}
+                          value={q.expected_answer}
+                          onChange={e => updateQuestion(q.id, 'expected_answer', e.target.value)}
+                        />
+                      )}
                     </div>
 
                     <div>

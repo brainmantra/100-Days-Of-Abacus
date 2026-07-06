@@ -35,8 +35,20 @@ export default function TeacherDashboard() {
   const [qDay, setQDay] = useState('')
   const [qSection, setQSection] = useState('teacher_day')
   const [qBlocks, setQBlocks] = useState([{ type: 'text', content: '' }, { type: 'box', answer: '' }])
+  const [qFormatExample, setQFormatExample] = useState('')
   const [editQId, setEditQId] = useState(null)
   const [qSaving, setQSaving] = useState(false)
+
+  useEffect(() => {
+    if (qDay) {
+      const is5th = parseInt(qDay, 10) % 5 === 0
+      if (is5th) {
+        setQSection('teacher_day')
+      } else if (qSection === 'teacher_day') {
+        setQSection('teacher_input')
+      }
+    }
+  }, [qDay, qSection])
   const [savedQuestions, setSavedQuestions] = useState([])
   const [loadingQ, setLoadingQ] = useState(false)
 
@@ -236,10 +248,15 @@ export default function TeacherDashboard() {
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Section</label>
                   <select value={qSection} onChange={e => setQSection(e.target.value)}>
-                    <option value="teacher_day">🌟 Teacher Day (5th-day)</option>
-                    <option value="teacher_input">👨‍🏫 Teacher Input</option>
-                    <option value="tables">📋 Tables</option>
-                    <option value="form_the_question">✏ Form The Question</option>
+                    {qDay && parseInt(qDay, 10) % 5 === 0 ? (
+                      <option value="teacher_day">🌟 Teacher Day (5th-day)</option>
+                    ) : (
+                      <>
+                        <option value="teacher_input">👨‍🏫 Teacher Input</option>
+                        <option value="tables">📋 Tables</option>
+                        <option value="form_the_question">✏ Form The Question</option>
+                      </>
+                    )}
                   </select>
                 </div>
               </div>
@@ -271,26 +288,38 @@ export default function TeacherDashboard() {
                 e.preventDefault()
                 // Convert blocks to legacy fields before submit
                 const questionStr = JSON.stringify(qBlocks)
-                const answers = qBlocks.filter(b => b.type === 'box' || b.type === 'step').map(b => b.answer || '')
+                const answers = qBlocks.filter(b => b.type === 'box' || b.type === 'step' || b.type === 'paragraph').map(b => b.answer || '')
                 const answerStr = JSON.stringify(answers)
                 
                 if (!qLevel || !qDay || !qBlocks.length) return toast.error('All fields required.')
-                if (answers.length === 0 && qSection === 'teacher') return toast.error('Teacher questions require at least one Answer Box or Step Box.')
+                if (answers.length === 0 && (qSection === 'teacher' || qSection === 'teacher_input')) return toast.error('Teacher questions require at least one Answer Box, Step Box, or Paragraph Box.')
                 
                 setQSaving(true)
                 teacherApi.post('/teachers/questions', {
                   id: editQId, level: qLevel, day_number: parseInt(qDay), section: qSection,
-                  question: questionStr, answer: answerStr,
+                  question: questionStr, answer: answerStr, format_example: qFormatExample,
                 })
                   .then(() => {
                     toast.success('Question saved!')
                     setQBlocks([{ type: 'text', content: '' }, { type: 'box', answer: '' }])
+                    setQFormatExample('')
                     setEditQId(null)
                     loadQuestions()
                   })
                   .catch(() => toast.error('Failed to save.'))
                   .finally(() => setQSaving(false))
               }}>
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label" style={{ marginBottom: '0.3rem', display: 'block' }}>Format Example (Optional)</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. '1st row = 2' or enter instruction" 
+                    value={qFormatExample} 
+                    onChange={e => setQFormatExample(e.target.value)} 
+                    style={{ width: '100%', padding: '0.6rem', background: 'var(--surface-color)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text-primary)' }}
+                  />
+                </div>
+
                 <div className="form-group" style={{ marginBottom: '1rem' }}>
                   <label className="form-label" style={{ marginBottom: '0.5rem' }}>Question Builder</label>
                   
@@ -317,14 +346,25 @@ export default function TeacherDashboard() {
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>
                           {block.type === 'text' ? 'QUESTION' : block.type}
                         </div>
-                        {block.type === 'box' || block.type === 'step' ? (
-                          <input 
-                            type="text" placeholder="Correct Answer..." 
-                            value={block.answer || ''} 
-                            onChange={e => {
-                              const newB = [...qBlocks]; newB[idx].answer = e.target.value; setQBlocks(newB);
-                            }} 
-                          />
+                        {block.type === 'box' || block.type === 'step' || block.type === 'paragraph' ? (
+                          block.type === 'paragraph' ? (
+                            <textarea 
+                              rows={2} placeholder="Correct Answer (Paragraph)..." 
+                              style={{ resize: 'vertical', minHeight: '60px', width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)' }}
+                              value={block.answer || ''} 
+                              onChange={e => {
+                                const newB = [...qBlocks]; newB[idx].answer = e.target.value; setQBlocks(newB);
+                              }} 
+                            />
+                          ) : (
+                            <input 
+                              type="text" placeholder="Correct Answer..." 
+                              value={block.answer || ''} 
+                              onChange={e => {
+                                const newB = [...qBlocks]; newB[idx].answer = e.target.value; setQBlocks(newB);
+                              }} 
+                            />
+                          )
                         ) : block.type === 'options' ? (
                           <textarea 
                             rows={2} placeholder="Enter options separated by commas (e.g. Apple, Banana, Orange)"
@@ -358,6 +398,7 @@ export default function TeacherDashboard() {
                     <button type="button" className="btn btn-ghost btn-sm" onClick={() => setQBlocks([...qBlocks, { type: 'example', content: '' }])}>+ Example</button>
                     <button type="button" className="btn btn-ghost btn-sm" onClick={() => setQBlocks([...qBlocks, { type: 'box', answer: '' }])}>+ Answer Box</button>
                     <button type="button" className="btn btn-ghost btn-sm" onClick={() => setQBlocks([...qBlocks, { type: 'step', answer: '' }])}>+ Step Box</button>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setQBlocks([...qBlocks, { type: 'paragraph', answer: '' }])}>+ Paragraph Box</button>
                     <button type="button" className="btn btn-ghost btn-sm" onClick={() => setQBlocks([...qBlocks, { type: 'options', content: '' }])}>+ Options</button>
                   </div>
                 </div>
@@ -367,7 +408,7 @@ export default function TeacherDashboard() {
                 </button>
                 {editQId && (
                   <button type="button" className="btn btn-ghost" style={{ marginLeft: '0.5rem' }} onClick={() => {
-                    setEditQId(null); setQBlocks([{ type: 'text', content: '' }, { type: 'box', answer: '' }]);
+                    setEditQId(null); setQBlocks([{ type: 'text', content: '' }, { type: 'box', answer: '' }]); setQFormatExample('');
                   }}>Cancel Edit</button>
                 )}
               </form>
@@ -400,6 +441,7 @@ export default function TeacherDashboard() {
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button className="btn btn-ghost btn-sm" onClick={() => {
                           setEditQId(q.id); setQLevel(q.level); setQDay(String(q.day_number)); setQSection(q.section);
+                          setQFormatExample(q.format_example || '');
                           try {
                             const parsed = JSON.parse(q.question);
                             if (Array.isArray(parsed)) {
@@ -475,6 +517,7 @@ export default function TeacherDashboard() {
                         className="btn btn-ghost btn-sm"
                         onClick={() => {
                           setEditQId(q.id); setQLevel(q.level); setQDay(String(q.day_number)); setQSection(q.section);
+                          setQFormatExample(q.format_example || '');
                           try {
                             const parsed = JSON.parse(q.question);
                             if (Array.isArray(parsed)) {

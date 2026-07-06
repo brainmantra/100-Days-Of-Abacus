@@ -159,6 +159,8 @@ CREATE TABLE IF NOT EXISTS teacher_questions (
 
 CREATE INDEX IF NOT EXISTS idx_tq_level_day ON teacher_questions(level, day_number);
 
+ALTER TABLE teacher_questions ADD COLUMN IF NOT EXISTS format_example TEXT;
+
 -- ── Per-level response tables ─────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS responses_l1 (
   id               SERIAL PRIMARY KEY,

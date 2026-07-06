@@ -10,6 +10,7 @@ import {
   selectQuestionsForDay,
   getTeacherQuestion,
   getSectionsForLevel,
+  getSectionsForLevelAsync,
   isTeacherDay,
   SECTION_LABELS,
   TEACHER_INPUT_SECTIONS,
@@ -186,7 +187,7 @@ router.get('/:id/progress/:dayNumber/sections', async (req, res) => {
     if (!student) return res.status(404).json({ message: 'Student not found.' })
 
     const level = normalizeStudentLevel(student.level) || student.level
-    const sections = getSectionsForLevel(level, dayNumber)
+    const sections = await getSectionsForLevelAsync(level, dayNumber)
 
     // Fetch completion metadata from day_records.section_data
     const { rows: dayRows } = await pool.query(
@@ -296,6 +297,7 @@ router.get('/:id/progress/:dayNumber/sections/:section/questions', async (req, r
           question_text: tq.question,
           answer: tq.answer,
           display_text: tq.question,
+          format_example: tq.format_example,
         }],
       })
     }
@@ -397,7 +399,7 @@ router.post('/:id/progress/:dayNumber/submit', async (req, res) => {
 
     const sectionData = dayRows[0]?.section_data || {}
     const level = normalizeStudentLevel(student.level) || student.level
-    const sections = getSectionsForLevel(level, dayNumber)
+    const sections = await getSectionsForLevelAsync(level, dayNumber)
 
     // Verify all sections are done
     const allDone = sections.every(sec => sectionData[sec]?.status === 'done')

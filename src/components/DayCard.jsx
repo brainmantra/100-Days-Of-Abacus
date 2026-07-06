@@ -104,7 +104,14 @@ export default function DayCard({ dayNumber, registrationDate, dayRecord }) {
   // Determine sections list for this day
   const isTeacherDay = dayNumber % 5 === 0
   const studentLevel = student?.level || 'l1'
-  const sections = isTeacherDay ? ['teacher_day'] : (LEVEL_SECTIONS[studentLevel] || ['abacus'])
+  const defaultSecs = isTeacherDay ? ['teacher_day'] : (LEVEL_SECTIONS[studentLevel] || ['abacus'])
+  const recordedSecs = dayRecord?.section_data ? Object.keys(dayRecord.section_data) : []
+  const sections = [...defaultSecs]
+  recordedSecs.forEach(sec => {
+    if (!sections.includes(sec)) {
+      sections.push(sec)
+    }
+  })
   const sectionData = dayRecord?.section_data || {}
 
   return (

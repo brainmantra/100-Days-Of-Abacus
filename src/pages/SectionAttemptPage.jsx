@@ -139,7 +139,7 @@ export default function SectionAttemptPage() {
     const qType = getQuestionType(currentQ);
     if (qType === 'teacher') {
       const blocks = getParsedBlocks(currentQ);
-      const boxesCount = blocks.filter(b => b.type === 'box').length;
+      const boxesCount = blocks.filter(b => b.type === 'box' || b.type === 'step' || b.type === 'paragraph').length;
       let parsed = [];
       try { parsed = JSON.parse(answer); if (!Array.isArray(parsed)) parsed = [answer]; } catch { parsed = [answer]; }
       if (parsed.length < boxesCount || parsed.some(v => !v || !String(v).trim())) {
@@ -425,6 +425,15 @@ export default function SectionAttemptPage() {
 
           return (
             <div className="card animate-pop" style={{ maxWidth: 600, width: '100%', padding: '2rem' }}>
+              {currentQ.format_example && (
+                <div style={{ 
+                  background: 'rgba(163, 123, 168, 0.1)', border: '1px solid rgba(163, 123, 168, 0.3)',
+                  color: '#c084fc', padding: '0.5rem 1rem', borderRadius: '8px', 
+                  fontSize: '0.9rem', marginBottom: '1rem', textAlign: 'center'
+                }}>
+                  Format example: {currentQ.format_example}
+                </div>
+              )}
               <div style={{ 
                 background: 'var(--bg-elevated)', padding: '1.5rem', borderRadius: '12px', marginBottom: '1.5rem',
                 lineHeight: 1.6, color: 'var(--text-primary)',
@@ -432,8 +441,32 @@ export default function SectionAttemptPage() {
                 {(() => {
                   let stepIndex = 1;
                   return blocks.map((block, idx) => {
-                    if (block.type === 'box' || block.type === 'step') {
+                    if (block.type === 'box' || block.type === 'step' || block.type === 'paragraph') {
                       const currentBoxIdx = boxIndex++;
+                      
+                      if (block.type === 'paragraph') {
+                        return (
+                          <textarea
+                            key={idx}
+                            className={feedback ? `feedback-${feedback}` : ''}
+                            style={{
+                              width: '100%', minHeight: '100px', display: 'block', margin: '0.75rem 0',
+                              padding: '0.5rem', fontSize: '1.1rem', borderRadius: '4px', border: '1px solid var(--border)',
+                              background: 'transparent', color: 'var(--text-primary)', resize: 'vertical'
+                            }}
+                            placeholder="Type your paragraph answer here..."
+                            value={parsedAns[currentBoxIdx] || ''}
+                            onChange={e => {
+                              const newAns = [...parsedAns];
+                              newAns[currentBoxIdx] = e.target.value;
+                              setAnswer(JSON.stringify(newAns));
+                            }}
+                            disabled={!!feedback}
+                            autoFocus={currentBoxIdx === 0}
+                          />
+                        );
+                      }
+
                       const inputElem = (
                         <input
                           key={idx}

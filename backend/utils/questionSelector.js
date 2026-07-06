@@ -70,6 +70,31 @@ export function getSectionsForLevel(level, dayNumber) {
   return LEVEL_SECTIONS[level] || ['abacus']
 }
 
+export async function getSectionsForLevelAsync(level, dayNumber) {
+  if (isTeacherDay(dayNumber)) {
+    return ['teacher_day']
+  }
+  const defaultSections = LEVEL_SECTIONS[level] || ['abacus']
+  try {
+    const { rows } = await pool.query(
+      `SELECT DISTINCT section FROM teacher_questions 
+       WHERE level = $1 AND day_number = $2 AND section != 'teacher_day'`,
+      [level, dayNumber]
+    )
+    const teacherSections = rows.map(r => r.section)
+    const combined = [...defaultSections]
+    for (const sec of teacherSections) {
+      if (!combined.includes(sec)) {
+        combined.push(sec)
+      }
+    }
+    return combined
+  } catch (err) {
+    console.error('[getSectionsForLevelAsync]', err)
+    return defaultSections
+  }
+}
+
 // ── Section display labels ─────────────────────────────────────────────────────
 export const SECTION_LABELS = {
   abacus:            '🧮 Abacus',

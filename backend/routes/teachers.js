@@ -141,7 +141,7 @@ router.get('/questions', requireTeacher, async (req, res) => {
 // ── POST /api/teachers/questions — save/upsert a teacher question ─────────────
 router.post('/questions', requireTeacher, async (req, res) => {
   try {
-    const { level, day_number, section = 'teacher_day', question, answer } = req.body
+    const { level, day_number, section = 'teacher_day', question, answer, format_example } = req.body
     const teacherId = req.teacher.id
     const levels = req.teacher.levels || []
 
@@ -159,13 +159,14 @@ router.post('/questions', requireTeacher, async (req, res) => {
     )
 
     const { rows } = await pool.query(
-      `INSERT INTO teacher_questions (level, day_number, section, question, answer, submitted_by)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO teacher_questions (level, day_number, section, question, answer, format_example, submitted_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (level, day_number, section)
        DO UPDATE SET question = EXCLUDED.question, answer = EXCLUDED.answer,
+                     format_example = EXCLUDED.format_example,
                      submitted_by = EXCLUDED.submitted_by, updated_at = NOW()
        RETURNING *`,
-      [level, day_number, section, question, answer, teacherId]
+      [level, day_number, section, question, answer, format_example || null, teacherId]
     )
 
     // Activity log
