@@ -2,6 +2,7 @@
  * routes/students.js — Student API (section-based paper flow)
  */
 import { Router } from 'express'
+import bcrypt from 'bcryptjs'
 import pool from '../db.js'
 import { getChallengeDay } from '../utils/dateHelpers.js'
 import { recalculateStreak } from '../utils/streak.js'
@@ -37,19 +38,48 @@ function normalizeStudentLevel(raw) {
 // ── POST /api/students/login ──────────────────────────────────────────────────
 router.post('/login', async (req, res) => {
   try {
-    const { mobile } = req.body
-    if (!/^\d{10}$/.test(mobile ?? '')) {
-      return res.status(400).json({ message: 'A valid 10-digit mobile number is required.' })
+    const { loginId, password } = req.body
+    if (!loginId) {
+      return res.status(400).json({ message: 'Login ID is required.' })
     }
 
-    // Fast path — already in DB
-    const { rows: existing } = await pool.query('SELECT * FROM students WHERE mobile = $1', [mobile])
+    const cleanLoginId = String(loginId).trim().toLowerCase()
+
+    // 1. Search DB for matching username or mobile
+    const { rows: existing } = await pool.query(
+      'SELECT * FROM students WHERE LOWER(username) = $1 OR mobile = $2',
+      [cleanLoginId, cleanLoginId]
+    )
+
     if (existing.length > 0) {
-      await logActivity({ userType: 'student', userId: existing[0].id, userLabel: existing[0].name, action: 'login_success', req })
-      return res.json({ student: existing[0] })
+      const student = existing[0]
+      // Verify password if a password_hash is set
+      if (student.password_hash) {
+        if (!password) {
+          return res.status(400).json({ message: 'Password is required for this account.' })
+        }
+        const match = await bcrypt.compare(password, student.password_hash)
+        if (!match) {
+          await logActivity({ userType: 'student', userId: student.id, userLabel: student.name, action: 'login_fail', req, metadata: { reason: 'wrong_password' } })
+          return res.status(401).json({ message: 'Incorrect password.' })
+        }
+      }
+      
+      await logActivity({ userType: 'student', userId: student.id, userLabel: student.name, action: 'login_success', req })
+      
+      // Clean student object before sending
+      const studentData = { ...student }
+      delete studentData.password_hash
+      return res.json({ student: studentData })
     }
 
-    // Check Google Sheet for enrollment
+    // 2. Fallback: If not in DB, check Google Sheet for enrollment by mobile number
+    // We only do this if loginId looks like a 10-digit mobile number
+    if (!/^\d{10}$/.test(cleanLoginId)) {
+      return res.status(404).json({ message: 'Login ID not found. If this is your first time, please log in with your registered 10-digit mobile number.' })
+    }
+
+    const mobile = cleanLoginId
     let sheetRow
     try {
       sheetRow = await findInSheet(mobile)
@@ -79,7 +109,10 @@ router.post('/login', async (req, res) => {
     )
     
     await logActivity({ userType: 'student', userId: created[0].id, userLabel: created[0].name, action: 'login_success', req, metadata: { first_login: true } })
-    return res.status(201).json({ student: created[0] })
+    
+    const studentData = { ...created[0] }
+    delete studentData.password_hash
+    return res.status(201).json({ student: studentData })
   } catch (err) {
     console.error('[login]', err)
     return res.status(500).json({ message: 'Server error during login: ' + (err.message || String(err)) })

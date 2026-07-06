@@ -9,7 +9,8 @@ import './LoginPage.css'
 export default function LoginPage() {
   const { login, student } = useAuth()
   const navigate = useNavigate()
-  const [mobile, setMobile] = useState('')
+  const [loginId, setLoginId] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [notFound, setNotFound] = useState(false)
 
@@ -20,14 +21,14 @@ export default function LoginPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault()
-    if (!/^[6-9]\d{9}$/.test(mobile)) {
-      toast.error('Enter a valid 10-digit mobile number')
+    if (!loginId.trim()) {
+      toast.error('Login ID is required')
       return
     }
     setLoading(true)
     setNotFound(false)
     try {
-      const res = await api.post('/students/login', { mobile })
+      const res = await api.post('/students/login', { loginId, password })
       
       // Prevent crashes if the server returns HTML instead of JSON
       if (!res.data || !res.data.student) {
@@ -98,25 +99,36 @@ export default function LoginPage() {
           <div className="login-form-header">
             <h2 className="login-form-title">Student Login</h2>
             <p className="login-form-subtitle">
-              Enter the mobile number you registered with to access your challenge.
+              Enter your unique Login ID and Password to access your challenge.
             </p>
           </div>
 
           <form onSubmit={handleLogin} noValidate>
             <div className="form-group">
-              <label className="form-label" htmlFor="mobile">Mobile Number</label>
+              <label className="form-label" htmlFor="loginId">Login ID</label>
               <input
-                id="mobile"
+                id="loginId"
                 className="form-input"
-                type="tel"
-                placeholder="10-digit registered mobile"
-                maxLength={10}
-                value={mobile}
+                type="text"
+                placeholder="Username or registered mobile"
+                value={loginId}
                 onChange={e => {
-                  setMobile(e.target.value.replace(/\D/g, ''))
+                  setLoginId(e.target.value)
                   setNotFound(false)
                 }}
                 autoFocus
+              />
+            </div>
+
+            <div className="form-group" style={{ marginTop: '1rem' }}>
+              <label className="form-label" htmlFor="password">Password</label>
+              <input
+                id="password"
+                className="form-input"
+                type="password"
+                placeholder="Enter your password (leave blank if not set)"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
               />
             </div>
 
@@ -144,7 +156,7 @@ export default function LoginPage() {
             <button
               type="submit"
               className="btn btn-primary login-submit"
-              disabled={loading || mobile.length < 10}
+              disabled={loading || !loginId.trim()}
             >
               {loading
                 ? <><span className="btn-spinner" /> Verifying…</>

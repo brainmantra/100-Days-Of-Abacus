@@ -106,7 +106,7 @@ router.get('/students', requireAdmin, async (req, res) => {
 
     const { rows } = await pool.query(
       `SELECT s.id, s.name, s.mobile, s.level, s.registration_date,
-              s.streak, s.longest_streak, s.xp_total,
+              s.streak, s.longest_streak, s.xp_total, s.username,
               MAX(d.completed_at) AS last_active,
               COUNT(CASE WHEN d.completed THEN 1 END) AS days_completed
        FROM students s
@@ -131,6 +131,42 @@ router.get('/students', requireAdmin, async (req, res) => {
   }
 })
 
+// ── POST /api/admin/students/:id/credentials ──────────────────────────────────
+router.post('/students/:id/credentials', requireAdmin, async (req, res) => {
+  try {
+    const studentId = parseInt(req.params.id, 10)
+    const { username, password } = req.body
+
+    if (!username || !password) {
+      return res.status(400).json({ message: 'Username and password are required.' })
+    }
+
+    const cleanUsername = String(username).trim().toLowerCase()
+
+    // Check if username is already taken by another student
+    const { rows: existing } = await pool.query(
+      'SELECT id FROM students WHERE username = $1 AND id != $2',
+      [cleanUsername, studentId]
+    )
+    if (existing.length > 0) {
+      return res.status(409).json({ message: 'This Login ID (username) is already taken.' })
+    }
+
+    // Hash the password
+    const hash = await bcrypt.hash(password, 12)
+
+    await pool.query(
+      'UPDATE students SET username = $1, password_hash = $2, updated_at = NOW() WHERE id = $3',
+      [cleanUsername, hash, studentId]
+    )
+
+    res.json({ success: true, message: 'Student credentials saved successfully.' })
+  } catch (err) {
+    console.error('[admin/students/:id/credentials]', err)
+    res.status(500).json({ message: 'Server error saving credentials.' })
+  }
+})
+
 // ── GET /api/admin/students/:id ───────────────────────────────────────────────
 router.get('/students/:id', requireAdmin, async (req, res) => {
   try {
@@ -142,6 +178,9 @@ router.get('/students/:id', requireAdmin, async (req, res) => {
       `SELECT * FROM day_records WHERE student_id = $1 ORDER BY day_number`,
       [studentId]
     )
+
+    // Remove password_hash from response for security
+    delete student[0].password_hash
 
     res.json({ student: student[0], days })
   } catch (err) {

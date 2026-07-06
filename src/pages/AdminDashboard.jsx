@@ -96,6 +96,10 @@ function StudentsTab() {
   const [selected, setSelected] = useState(null)
   const [selectedDays, setSelectedDays] = useState([])
   const [dayLoading, setDayLoading] = useState(false)
+  const [showCredsModal, setShowCredsModal] = useState(false)
+  const [credUsername, setCredUsername] = useState('')
+  const [credPassword, setCredPassword] = useState('')
+  const [credSaving, setCredSaving] = useState(false)
 
   const fetchStudents = useCallback(async () => {
     setLoading(true)
@@ -113,11 +117,37 @@ function StudentsTab() {
 
   const openStudent = async (s) => {
     setSelected(s); setDayLoading(true)
+    setCredUsername(s.username || '')
+    setCredPassword('')
     try {
       const res = await adminApi.get(`/admin/students/${s.id}`)
       setSelectedDays(res.data.days || [])
     } catch { toast.error('Could not load student history.') }
     finally { setDayLoading(false) }
+  }
+
+  const handleSaveCredentials = async (e) => {
+    e.preventDefault()
+    if (!credUsername || !credPassword) {
+      toast.error('Both Username and Password are required.')
+      return
+    }
+    setCredSaving(true)
+    try {
+      await adminApi.post(`/admin/students/${selected.id}/credentials`, {
+        username: credUsername,
+        password: credPassword
+      })
+      toast.success('Credentials saved successfully.')
+      setSelected(prev => ({ ...prev, username: credUsername.trim().toLowerCase() }))
+      setStudents(prev => prev.map(st => st.id === selected.id ? { ...st, username: credUsername.trim().toLowerCase() } : st))
+      setShowCredsModal(false)
+      setCredPassword('')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to save credentials.')
+    } finally {
+      setCredSaving(false)
+    }
   }
 
   const getStatusIcon = (days, idx) => {
@@ -144,6 +174,14 @@ function StudentsTab() {
               {selected.mobile} · {LEVEL_LABELS[selected.level] || selected.level} · 
               🔥 {selected.streak} streak · ⚡ {selected.xp_total} XP
             </p>
+            <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              <strong>Login ID:</strong> {selected.username || <em style={{ color: 'var(--text-muted)' }}>Not Set (uses mobile)</em>}
+            </p>
+          </div>
+          <div style={{ marginLeft: 'auto' }}>
+            <button className="btn btn-primary btn-sm" onClick={() => setShowCredsModal(true)}>
+              🔑 Set Login ID & Password
+            </button>
           </div>
         </div>
 
@@ -192,6 +230,50 @@ function StudentsTab() {
             ) : (
               <p style={{ color: 'var(--text-muted)' }}>No completed days yet for a growth chart.</p>
             )}
+          </div>
+        )}
+        
+        {showCredsModal && (
+          <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div className="card animate-pop" style={{ maxWidth: 400, width: '90%', padding: '2rem', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
+              <h3 style={{ marginBottom: '1rem', fontSize: '1.2rem', color: 'var(--text-primary)' }}>Set Login Credentials</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+                Assign a unique Login ID (Username) and Password for <strong>{selected.name}</strong>.
+              </p>
+              <form onSubmit={handleSaveCredentials}>
+                <div className="form-group">
+                  <label className="form-label" style={{ color: 'var(--text-secondary)' }}>Login ID (Username)</label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    required
+                    placeholder="e.g. rahul_abacus"
+                    value={credUsername}
+                    onChange={e => setCredUsername(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                <div className="form-group" style={{ marginTop: '1rem' }}>
+                  <label className="form-label" style={{ color: 'var(--text-secondary)' }}>Password</label>
+                  <input
+                    className="form-input"
+                    type="password"
+                    required
+                    placeholder="e.g. password123"
+                    value={credPassword}
+                    onChange={e => setCredPassword(e.target.value)}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '2rem', justifyContent: 'flex-end' }}>
+                  <button type="button" className="btn btn-ghost" onClick={() => { setShowCredsModal(false); setCredPassword(''); }}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={credSaving}>
+                    {credSaving ? 'Saving...' : 'Save Credentials'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
       </div>
