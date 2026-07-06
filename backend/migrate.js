@@ -38,6 +38,8 @@ ALTER TABLE students ADD COLUMN IF NOT EXISTS username TEXT UNIQUE;
 ALTER TABLE students ADD COLUMN IF NOT EXISTS password_hash TEXT;
 ALTER TABLE students ADD COLUMN IF NOT EXISTS plain_password TEXT;
 
+ALTER TABLE students DROP CONSTRAINT IF EXISTS students_mobile_key;
+
 -- ── Day records ───────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS day_records (
   id                   SERIAL PRIMARY KEY,

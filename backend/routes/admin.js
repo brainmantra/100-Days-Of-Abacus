@@ -147,10 +147,10 @@ router.get('/students', requireAdmin, async (req, res) => {
 router.post('/students/sync', requireAdmin, async (req, res) => {
   try {
     const sheetRows = await fetchRegistrationSheet()
-    const { rows: dbStudents } = await pool.query('SELECT mobile FROM students')
-    const dbMobiles = new Set(dbStudents.map(s => s.mobile))
+    const { rows: dbStudents } = await pool.query('SELECT name, mobile FROM students')
+    const dbStudentKeys = new Set(dbStudents.map(s => `${s.name.trim().toLowerCase()}_${s.mobile}`))
 
-    const newStudents = sheetRows.filter(r => !dbMobiles.has(r.mobile))
+    const newStudents = sheetRows.filter(r => !dbStudentKeys.has(`${r.name.trim().toLowerCase()}_${r.mobile}`))
     
     // Also find existing students who have no username
     const { rows: missingCredentials } = await pool.query('SELECT id, mobile, name FROM students WHERE username IS NULL')
@@ -173,8 +173,7 @@ router.post('/students/sync', requireAdmin, async (req, res) => {
       
       await pool.query(
         `INSERT INTO students (name, mobile, level, username, password_hash, plain_password, registration_date)
-         VALUES ($1, $2, $3, $4, $5, $6, NOW())
-         ON CONFLICT (mobile) DO NOTHING`,
+         VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
         [st.name, st.mobile, levelId, username, hash, plain_password]
       )
       addedCount++
@@ -213,10 +212,13 @@ router.post('/students', requireAdmin, async (req, res) => {
 
     const cleanUsername = String(username).trim().toLowerCase()
 
-    // Check if mobile already exists
-    const { rows: existingMobile } = await pool.query('SELECT id FROM students WHERE mobile = $1', [mobile])
-    if (existingMobile.length > 0) {
-      return res.status(409).json({ message: 'A student with this mobile number already exists.' })
+    // Check if name+mobile already exists
+    const { rows: existingStudent } = await pool.query(
+      'SELECT id FROM students WHERE LOWER(name) = $1 AND mobile = $2', 
+      [name.trim().toLowerCase(), mobile]
+    )
+    if (existingStudent.length > 0) {
+      return res.status(409).json({ message: 'A student with this name and mobile number already exists.' })
     }
 
     // Check if username already exists
@@ -232,7 +234,6 @@ router.post('/students', requireAdmin, async (req, res) => {
     const { rows: created } = await pool.query(
       `INSERT INTO students (name, mobile, level, username, password_hash, plain_password, registration_date)
        VALUES ($1, $2, $3, $4, $5, $6, NOW())
-       ON CONFLICT (mobile) DO UPDATE SET updated_at = NOW()
        RETURNING *`,
       [name.trim(), mobile.trim(), level, cleanUsername, hash, password]
     )
