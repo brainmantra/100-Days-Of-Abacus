@@ -8,7 +8,9 @@ import DayCard from '../components/DayCard'
 import StreakCorner from '../components/StreakCorner'
 import toast from 'react-hot-toast'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import Joyride, { STATUS } from 'react-joyride'
+import * as ReactJoyride from 'react-joyride'
+const Joyride = ReactJoyride.default || ReactJoyride
+const { STATUS } = ReactJoyride
 import './ChallengePage.css'
 
 export default function ChallengePage() {
