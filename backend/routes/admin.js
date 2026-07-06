@@ -95,11 +95,22 @@ router.get('/students', requireAdmin, async (req, res) => {
 
     if (search) {
       params.push(`%${search}%`)
-      where += ` AND (s.name ILIKE $${params.length} OR s.mobile ILIKE $${params.length})`
+      where += ` AND (s.name ILIKE $${params.length} OR s.mobile ILIKE $${params.length} OR s.username ILIKE $${params.length})`
     }
     if (level) {
-      params.push(level)
-      where += ` AND s.level = $${params.length}`
+      const levelMap = {
+        l1: ['l1', 'beginner', 'level 1', 'level-1'],
+        l2: ['l2', 'elementary', 'level 2', 'level-2'],
+        l3: ['l3', 'intermediate', 'level 3', 'level-3'],
+        l4: ['l4', 'advanced', 'level 4', 'level-4'],
+        l5: ['l5', 'expert', 'level 5', 'level-5'],
+        l6: ['l6', 'level 6', 'level-6'],
+        l7: ['l7', 'level 7', 'level-7'],
+        l8: ['l8', 'level 8', 'level-8']
+      }
+      const allowed = levelMap[level] || [level]
+      params.push(allowed)
+      where += ` AND (LOWER(s.level) = ANY($${params.length}))`
     }
 
     params.push(parseInt(limit), offset)
