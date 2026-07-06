@@ -154,7 +154,7 @@ export default function DayCard({ dayNumber, registrationDate, dayRecord }) {
                 <span className="day-card-section-index">Part {idx + 1}</span>
                 {isSecDone && (
                   <span className="day-card-section-badge done">
-                    DONE
+                    DONE {sectionData[sec]?.marks !== undefined ? `(${sectionData[sec].marks} marks)` : ''}
                   </span>
                 )}
               </div>

@@ -217,7 +217,9 @@ export default function SectionListPage() {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <span className={`badge ${statusCfg.badge}`}>{statusCfg.label}</span>
+                  <span className={`badge ${statusCfg.badge}`}>
+                    {statusCfg.label} {isDone ? `(${sec.marks ?? 0} marks)` : ''}
+                  </span>
                   {!isDone && canPlay && (
                     <button
                       className="btn btn-primary btn-sm"
