@@ -27,7 +27,7 @@ export default function ChallengePage() {
 
   const currentDay = useMemo(() => getChallengeDay(student?.registration_date), [student])
   const clampedCurrentDay = Math.min(currentDay, 100)
-  const maxRenderDay = Math.min(currentDay + 1, 100)
+  const maxRenderDay = Math.min(currentDay, 100)
 
   const stats = useMemo(() => {
     const completedDaysList = days.filter(d => d.completed)
