@@ -35,7 +35,8 @@ export default function SectionListPage() {
   const [data, setData] = useState(null)          // { sections, paperCompleted, isTeacherDay, teacherDayReady }
   const [submitting, setSubmitting] = useState(false)
 
-  const isToday = student ? isDayToday(student.registration_date, dayNum) : false
+  const isToday = dayNum === 0 || (student ? isDayToday(student.registration_date, dayNum) : false)
+  const isDemo = dayNum === 0
 
   // Open day record first, then fetch sections
   useEffect(() => {
@@ -83,7 +84,7 @@ export default function SectionListPage() {
   }
 
   const handlePlaySection = (sec) => {
-    if (sec.status === 'done') {
+    if (sec.status === 'done' && !isDemo) {
       toast('This section is already completed.', { icon: '✓' })
       return
     }
@@ -147,11 +148,17 @@ export default function SectionListPage() {
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
               <h1 className="gradient-text" style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>
-                Day {dayNum}
+                {isDemo ? '🎮 Demo Day' : `Day ${dayNum}`}
               </h1>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-                {levelLabel} • {data.sections?.length} section{data.sections?.length !== 1 ? 's' : ''}
-              </p>
+              {isDemo ? (
+                <p style={{ color: 'var(--warning)', fontWeight: 600, fontSize: '0.9rem' }}>
+                  💡 Practice mode — your progress here won’t affect your streak or score!
+                </p>
+              ) : (
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+                  {levelLabel} • {data.sections?.length} section{data.sections?.length !== 1 ? 's' : ''}
+                </p>
+              )}
             </div>
             {allDone && (
               <span className="badge badge-success" style={{ fontSize: '0.85rem', padding: '6px 14px' }}>
@@ -234,27 +241,39 @@ export default function SectionListPage() {
           })}
         </div>
 
-        {/* Submit Paper */}
-        <div className="card" style={{ textAlign: 'center', padding: '1.5rem 2rem' }}>
-          {allDone ? (
-            <>
-              <p style={{ color: 'var(--success)', fontWeight: 600, marginBottom: '1rem' }}>
-                🎉 All sections completed! Submit your paper to see your score.
+        {/* Submit Paper - hide for demo */}
+        {!isDemo && (
+          <div className="card" style={{ textAlign: 'center', padding: '1.5rem 2rem' }}>
+            {allDone ? (
+              <>
+                <p style={{ color: 'var(--success)', fontWeight: 600, marginBottom: '1rem' }}>
+                  🎉 All sections completed! Submit your paper to see your score.
+                </p>
+                <button
+                  className="btn btn-success btn-lg"
+                  onClick={handleSubmitPaper}
+                  disabled={submitting}
+                >
+                  {submitting ? <><div className="spinner spinner-sm" /> Submitting...</> : '📝 Submit Paper'}
+                </button>
+              </>
+            ) : (
+              <p style={{ color: 'var(--text-muted)' }}>
+                Complete all sections to unlock paper submission.
               </p>
-              <button
-                className="btn btn-success btn-lg"
-                onClick={handleSubmitPaper}
-                disabled={submitting}
-              >
-                {submitting ? <><div className="spinner spinner-sm" /> Submitting...</> : '📝 Submit Paper'}
-              </button>
-            </>
-          ) : (
-            <p style={{ color: 'var(--text-muted)' }}>
-              Complete all sections to unlock paper submission.
+            )}
+          </div>
+        )}
+        {isDemo && allDone && (
+          <div className="card" style={{ textAlign: 'center', padding: '1.5rem 2rem', borderColor: 'var(--success)' }}>
+            <p style={{ color: 'var(--success)', fontWeight: 600, marginBottom: '1rem' }}>
+              🎉 Great practice! You’ve tried all sections. Head back and start your real challenge!
             </p>
-          )}
-        </div>
+            <button className="btn btn-primary" onClick={() => navigate('/challenge')}>
+              Go to Challenge Map
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -24,6 +24,7 @@ export const TEACHER_INPUT_SECTIONS = new Set([
 
 // ── Every-5th-day check ────────────────────────────────────────────────────────
 export function isTeacherDay(dayNumber) {
+  if (dayNumber === 0) return false
   return dayNumber % 5 === 0
 }
 
@@ -45,7 +46,9 @@ export async function selectQuestionsForDay(level, section, dayNumber, count = Q
   // Modular rotation: day N slot i → index ((N-1)*count + i) % total
   const selected = []
   for (let i = 0; i < count; i++) {
-    const idx = ((dayNumber - 1) * count + i) % allQs.length
+    // Math.max(1, dayNumber) so day 0 uses the same questions as day 1
+    const safeDay = Math.max(1, dayNumber)
+    const idx = ((safeDay - 1) * count + i) % allQs.length
     selected.push(allQs[idx])
   }
 

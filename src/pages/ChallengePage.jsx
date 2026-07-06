@@ -8,6 +8,7 @@ import DayCard from '../components/DayCard'
 import StreakCorner from '../components/StreakCorner'
 import toast from 'react-hot-toast'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import Joyride, { STATUS } from 'react-joyride'
 import './ChallengePage.css'
 
 export default function ChallengePage() {
@@ -23,6 +24,53 @@ export default function ChallengePage() {
     l1: 'Level 1', l2: 'Level 2', l3: 'Level 3', l4: 'Level 4',
     l5: 'Level 5', l6: 'Level 6', l7: 'Level 7', l8: 'Level 8',
     alumni: 'Alumni'
+  }
+
+  const [{ run, steps }, setTourState] = useState({
+    run: false,
+    steps: [
+      {
+        target: '.tour-step-progress',
+        content: 'This shows your overall completion out of 100 days. Keep going!',
+        disableBeacon: true,
+      },
+      {
+        target: '.tour-step-streak',
+        content: 'Here you can see your current streak. Solve everyday to keep it going!',
+      },
+      {
+        target: '.tour-step-demo',
+        content: 'This is the Demo Day. You can practice here as many times as you like without affecting your streak!',
+      },
+      {
+        target: '.tour-step-dashboard',
+        content: 'Click here to switch to your dashboard and view your performance statistics.',
+      }
+    ]
+  })
+
+  // Start tour automatically if not seen
+  useEffect(() => {
+    if (student?.id) {
+      const hasSeenTour = localStorage.getItem(`tour_seen_${student.id}`)
+      if (!hasSeenTour) {
+        // slight delay to let elements render
+        setTimeout(() => setTourState(prev => ({ ...prev, run: true })), 500)
+      }
+    }
+  }, [student])
+
+  const handleJoyrideCallback = (data) => {
+    const { status } = data
+    const finishedStatuses = [STATUS.FINISHED, STATUS.SKIPPED]
+    if (finishedStatuses.includes(status)) {
+      localStorage.setItem(`tour_seen_${student.id}`, 'true')
+      setTourState(prev => ({ ...prev, run: false }))
+    }
+  }
+
+  const startTourManually = () => {
+    setTourState(prev => ({ ...prev, run: true }))
   }
 
   const currentDay = useMemo(() => getChallengeDay(student?.registration_date), [student])
@@ -95,6 +143,22 @@ export default function ChallengePage() {
 
   return (
     <div className="page-wrapper">
+      <Joyride
+        callback={handleJoyrideCallback}
+        continuous
+        hideCloseButton
+        run={run}
+        scrollToFirstStep
+        showProgress
+        showSkipButton
+        steps={steps}
+        styles={{
+          options: {
+            primaryColor: '#f5a623',
+            zIndex: 10000,
+          }
+        }}
+      />
       <header className="challenge-header">
         <div className="container challenge-header-inner">
           <div className="challenge-brand">
@@ -107,6 +171,14 @@ export default function ChallengePage() {
             <span className="challenge-brand-text">100 Days of Abacus</span>
           </div>
           <nav className="challenge-nav">
+            <button
+              className="btn btn-ghost"
+              onClick={startTourManually}
+              title="Replay page tour"
+              style={{ marginRight: '0.5rem' }}
+            >
+              ℹ️ Help
+            </button>
             <button className="btn btn-ghost" onClick={() => { logout(); navigate('/') }}>Log out</button>
           </nav>
         </div>
@@ -121,7 +193,7 @@ export default function ChallengePage() {
               {' '}You're on Day <strong>{clampedCurrentDay}</strong> of 100.
             </p>
           </div>
-          <div className="challenge-progress-ring">
+          <div className="challenge-progress-ring tour-step-progress">
             <svg width="74" height="74" viewBox="0 0 74 74">
               <circle cx="37" cy="37" r="32" fill="none" stroke="var(--ivory-dark)" strokeWidth="7" />
               <circle
@@ -146,7 +218,7 @@ export default function ChallengePage() {
             🗺️ Challenge Map
           </button>
           <button 
-            className={`btn ${activeTab === 'dashboard' ? 'btn-primary' : 'btn-ghost'}`} 
+            className={`btn ${activeTab === 'dashboard' ? 'btn-primary' : 'btn-ghost'} tour-step-dashboard`} 
             style={{ fontSize: '0.9rem', padding: '0.4rem 1rem' }}
             onClick={() => setActiveTab('dashboard')}
           >
@@ -156,7 +228,7 @@ export default function ChallengePage() {
 
         {activeTab === 'map' ? (
           <>
-            <section className="animate-fade" style={{ animationDelay: '0.05s', marginBottom: 28 }}>
+            <section className="animate-fade tour-step-streak" style={{ animationDelay: '0.05s', marginBottom: 28 }}>
               <StreakCorner streak={streak} longestStreak={longestStreak} />
             </section>
 
@@ -166,13 +238,15 @@ export default function ChallengePage() {
               </div>
             ) : (
               <section className="day-grid animate-fade" style={{ animationDelay: '0.1s' }}>
-                {Array.from({ length: maxRenderDay }, (_, i) => i + 1).map(dayNum => (
-                  <DayCard
-                    key={dayNum}
-                    dayNumber={dayNum}
-                    registrationDate={student.registration_date}
-                    dayRecord={dayMap[dayNum]}
-                  />
+                {[0, ...Array.from({ length: maxRenderDay }, (_, i) => i + 1)].map((dayNum, index) => (
+                  <div key={dayNum} className={dayNum === 0 ? 'tour-step-demo' : ''}>
+                    <DayCard
+                      dayNumber={dayNum}
+                      registrationDate={student.registration_date}
+                      dayRecord={dayNum === 0 ? null : dayMap[dayNum]}
+                      isDemo={dayNum === 0}
+                    />
+                  </div>
                 ))}
               </section>
             )}

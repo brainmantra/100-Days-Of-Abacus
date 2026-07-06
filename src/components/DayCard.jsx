@@ -44,7 +44,7 @@ const SECTION_SHORT_LABELS = {
   bodmas: '🧮 Bodmas',
 }
 
-export default function DayCard({ dayNumber, registrationDate, dayRecord }) {
+export default function DayCard({ dayNumber, registrationDate, dayRecord, isDemo }) {
   const navigate = useNavigate()
   const { student } = useAuth()
   const dayDate = getDayDate(registrationDate, dayNumber)
@@ -52,7 +52,9 @@ export default function DayCard({ dayNumber, registrationDate, dayRecord }) {
   const past = isDayPast(registrationDate, dayNumber)
 
   let status = 'future'
-  if (dayRecord?.completed) {
+  if (isDemo) {
+    status = 'today'
+  } else if (dayRecord?.completed) {
     status = 'completed'
   } else if (dayRecord?.opened && today) {
     status = 'opened'
@@ -131,7 +133,7 @@ export default function DayCard({ dayNumber, registrationDate, dayRecord }) {
     <div className={`day-card-container ${status}`}>
       {/* Top Header Row */}
       <div className="day-card-header">
-        <h2 className="day-card-title">Day {dayNumber}</h2>
+        <h2 className="day-card-title">{isDemo ? 'Demo Day' : `Day ${dayNumber}`}</h2>
         <span className={`day-card-badge badge-${status}`}>
           {status === 'completed' ? '✓ ' : status === 'future' ? '🔒 ' : ''}
           {cfg.badge}
@@ -139,7 +141,7 @@ export default function DayCard({ dayNumber, registrationDate, dayRecord }) {
       </div>
 
       {/* Date label */}
-      <div className="day-card-date-label">{formatDate(dayDate)}</div>
+      {!isDemo && <div className="day-card-date-label">{formatDate(dayDate)}</div>}
 
       {/* Section Tags */}
       <div className="day-card-tags">

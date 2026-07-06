@@ -143,8 +143,13 @@ router.post('/:id/progress/:dayNumber/open', async (req, res) => {
     if (!student) return res.status(404).json({ message: 'Student not found.' })
 
     const currentDay = getChallengeDay(student.registration_date)
-    if (dayNumber !== currentDay) {
+    if (dayNumber !== currentDay && dayNumber !== 0) {
       return res.status(403).json({ message: 'This day is not currently active.' })
+    }
+
+    // Day 0 is Demo Day — always available, never written to DB
+    if (dayNumber === 0) {
+      return res.status(200).json({ message: 'Demo day opened.' })
     }
 
     const { rows: existing } = await pool.query(
@@ -182,7 +187,30 @@ router.get('/:id/progress/:dayNumber/sections', async (req, res) => {
     if (!student) return res.status(404).json({ message: 'Student not found.' })
 
     const level = normalizeStudentLevel(student.level) || student.level
-    const sections = await getSectionsForLevelAsync(level, dayNumber)
+    const sections = await getSectionsForLevelAsync(level, Math.max(1, dayNumber))
+
+    // Demo Day (day 0) — return sections with no DB state; never mark as completed
+    if (dayNumber === 0) {
+      const demoSections = sections.map(sec => ({
+        section: sec,
+        label: SECTION_LABELS[sec] || sec,
+        status: 'not_started',
+        questionCount: TEACHER_INPUT_SECTIONS.has(sec) ? 1 : 5,
+        timeTaken: 0,
+        marks: 0,
+        ready: !TEACHER_INPUT_SECTIONS.has(sec) && level !== 'l1', // teacher sections not available in demo
+        isDemo: true,
+      }))
+      return res.json({
+        sections: demoSections.filter(s => s.ready),
+        paperCompleted: false,
+        isTeacherDay: false,
+        teacherDayReady: false,
+        level,
+        dayNumber: 0,
+        isDemo: true,
+      })
+    }
 
     // Fetch completion metadata from day_records.section_data
     const { rows: dayRows } = await pool.query(

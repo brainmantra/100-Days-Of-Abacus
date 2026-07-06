@@ -45,15 +45,17 @@ export default function SectionAttemptPage() {
     let mounted = true
     async function init() {
       try {
-        // Mark section as opened (one-time)
-        try {
-          await api.post(`/students/${student.id}/progress/${dayNum}/sections/${section}/open`)
-        } catch (e) {
-          if (e.response?.status === 409) {
-            // Already opened and done — redirect back
-            toast('This section is already completed.', { icon: '✓' })
-            navigate(`/challenge/day/${dayNum}/sections`)
-            return
+        // Mark section as opened (one-time) — skip for demo day
+        if (dayNum !== 0) {
+          try {
+            await api.post(`/students/${student.id}/progress/${dayNum}/sections/${section}/open`)
+          } catch (e) {
+            if (e.response?.status === 409) {
+              // Already opened and done — redirect back
+              toast('This section is already completed.', { icon: '✓' })
+              navigate(`/challenge/day/${dayNum}/sections`)
+              return
+            }
           }
         }
 
@@ -196,6 +198,12 @@ export default function SectionAttemptPage() {
 
   const submitSection = async (finalResponses) => {
     setPhase('submitting')
+    // Demo day (day 0) — skip saving to backend; just show confetti
+    if (dayNum === 0) {
+      confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } })
+      setPhase('done')
+      return
+    }
     try {
       await api.post(`/students/${student.id}/progress/${dayNum}/sections/${section}/submit`, {
         responses: finalResponses,
@@ -251,18 +259,20 @@ export default function SectionAttemptPage() {
   if (phase === 'done') {
     const correct = responses.filter(r => r.is_correct).length
     const acc = responses.length > 0 ? Math.round((correct / responses.length) * 100) : 0
+    const isDemo = dayNum === 0
     return (
       <div className="page page-bg-dots" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
         <div className="card animate-pop" style={{ maxWidth: 420, width: '100%', margin: '2rem', textAlign: 'center', padding: '2.5rem' }}>
-          <div style={{ fontSize: '3.5rem', marginBottom: '0.75rem' }}>✅</div>
+          <div style={{ fontSize: '3.5rem', marginBottom: '0.75rem' }}>{isDemo ? '🎮' : '✅'}</div>
           <h2 className="gradient-text" style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>
-            Section Complete!
+            {isDemo ? 'Practice Complete!' : 'Section Complete!'}
           </h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
             {SECTION_LABELS[section]}
+            {isDemo && <><br /><span style={{ color: 'var(--warning)', fontSize: '0.85rem' }}>Demo mode — results not saved</span></>}
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isDemo ? '1fr 1fr' : '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
             <div className="report-metric">
               <div className="report-metric__val" style={{ color: 'var(--success)' }}>{correct}</div>
               <div className="report-metric__label">Correct</div>
@@ -271,17 +281,19 @@ export default function SectionAttemptPage() {
               <div className="report-metric__val">{acc}%</div>
               <div className="report-metric__label">Accuracy</div>
             </div>
-            <div className="report-metric">
-              <div className="report-metric__val" style={{ color: 'var(--accent-gold)' }}>{totalXp}</div>
-              <div className="report-metric__label">XP Earned</div>
-            </div>
+            {!isDemo && (
+              <div className="report-metric">
+                <div className="report-metric__val" style={{ color: 'var(--accent-gold)' }}>{totalXp}</div>
+                <div className="report-metric__label">XP Earned</div>
+              </div>
+            )}
           </div>
 
           <button
             className="btn btn-primary btn-block"
             onClick={() => navigate(`/challenge/day/${dayNum}/sections`)}
           >
-            Back to Paper →
+            {isDemo ? 'Back to Demo →' : 'Back to Paper →'}
           </button>
         </div>
       </div>
