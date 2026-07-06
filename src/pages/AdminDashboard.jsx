@@ -101,6 +101,15 @@ function StudentsTab() {
   const [credPassword, setCredPassword] = useState('')
   const [credSaving, setCredSaving] = useState(false)
 
+  // Add Student states
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newMobile, setNewMobile] = useState('')
+  const [newLevel, setNewLevel] = useState('l1')
+  const [newUsername, setNewUsername] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [newSaving, setNewSaving] = useState(false)
+
   const fetchStudents = useCallback(async () => {
     setLoading(true)
     try {
@@ -147,6 +156,40 @@ function StudentsTab() {
       toast.error(err.response?.data?.message || 'Failed to save credentials.')
     } finally {
       setCredSaving(false)
+    }
+  }
+
+  const handleAddStudent = async (e) => {
+    e.preventDefault()
+    if (!newName || !newMobile || !newLevel || !newUsername || !newPassword) {
+      toast.error('All fields are required.')
+      return
+    }
+    if (!/^\d{10}$/.test(newMobile)) {
+      toast.error('Mobile number must be exactly 10 digits.')
+      return
+    }
+    setNewSaving(true)
+    try {
+      await adminApi.post('/admin/students', {
+        name: newName,
+        mobile: newMobile,
+        level: newLevel,
+        username: newUsername,
+        password: newPassword
+      })
+      toast.success('Student added successfully.')
+      fetchStudents()
+      setShowAddModal(false)
+      setNewName('')
+      setNewMobile('')
+      setNewLevel('l1')
+      setNewUsername('')
+      setNewPassword('')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to add student.')
+    } finally {
+      setNewSaving(false)
     }
   }
 
@@ -284,6 +327,9 @@ function StudentsTab() {
     <div className="animate-slide-up">
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
         <h1 style={{ fontSize: '1.6rem', flex: 1 }}>Students</h1>
+        <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+          ➕ Add Student
+        </button>
       </div>
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <div className="search-input" style={{ flex: 1, minWidth: 200 }}>
@@ -320,6 +366,46 @@ function StudentsTab() {
               {students.length === 0 && <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>No students found.</td></tr>}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {showAddModal && (
+        <div className="modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div className="card animate-pop" style={{ maxWidth: 450, width: '90%', padding: '2rem', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.2rem', color: 'var(--text-primary)' }}>Add New Student</h3>
+            <form onSubmit={handleAddStudent}>
+              <div className="form-group">
+                <label className="form-label" style={{ color: 'var(--text-secondary)' }}>Full Name</label>
+                <input className="form-input" type="text" required placeholder="e.g. Rahul Sharma" value={newName} onChange={e => setNewName(e.target.value)} />
+              </div>
+              <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                <label className="form-label" style={{ color: 'var(--text-secondary)' }}>Mobile Number</label>
+                <input className="form-input" type="tel" maxLength={10} required placeholder="10-digit mobile" value={newMobile} onChange={e => setNewMobile(e.target.value.replace(/\D/g, ''))} />
+              </div>
+              <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                <label className="form-label" style={{ color: 'var(--text-secondary)' }}>Level</label>
+                <select value={newLevel} onChange={e => setNewLevel(e.target.value)} style={{ width: '100%' }}>
+                  {LEVELS.map(l => <option key={l} value={l}>{LEVEL_LABELS[l]}</option>)}
+                </select>
+              </div>
+              <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                <label className="form-label" style={{ color: 'var(--text-secondary)' }}>Login ID (Username)</label>
+                <input className="form-input" type="text" required placeholder="e.g. rahul_abacus" value={newUsername} onChange={e => setNewUsername(e.target.value)} />
+              </div>
+              <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                <label className="form-label" style={{ color: 'var(--text-secondary)' }}>Password</label>
+                <input className="form-input" type="password" required placeholder="e.g. password123" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '2rem', justifyContent: 'flex-end' }}>
+                <button type="button" className="btn btn-ghost" onClick={() => setShowAddModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={newSaving}>
+                  {newSaving ? 'Saving...' : 'Add Student'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

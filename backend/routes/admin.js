@@ -131,6 +131,54 @@ router.get('/students', requireAdmin, async (req, res) => {
   }
 })
 
+// ── POST /api/admin/students ──────────────────────────────────────────────────
+router.post('/students', requireAdmin, async (req, res) => {
+  try {
+    const { name, mobile, level, username, password } = req.body
+
+    if (!name || !mobile || !level || !username || !password) {
+      return res.status(400).json({ message: 'All fields (Name, Mobile, Level, Login ID, Password) are required.' })
+    }
+
+    if (!/^\d{10}$/.test(mobile)) {
+      return res.status(400).json({ message: 'Mobile number must be exactly 10 digits.' })
+    }
+
+    const cleanUsername = String(username).trim().toLowerCase()
+
+    // Check if mobile already exists
+    const { rows: existingMobile } = await pool.query('SELECT id FROM students WHERE mobile = $1', [mobile])
+    if (existingMobile.length > 0) {
+      return res.status(409).json({ message: 'A student with this mobile number already exists.' })
+    }
+
+    // Check if username already exists
+    const { rows: existingUser } = await pool.query('SELECT id FROM students WHERE username = $1', [cleanUsername])
+    if (existingUser.length > 0) {
+      return res.status(409).json({ message: 'This Login ID (username) is already taken.' })
+    }
+
+    // Hash the password
+    const hash = await bcrypt.hash(password, 12)
+
+    // Insert student
+    const { rows: created } = await pool.query(
+      `INSERT INTO students (name, mobile, level, username, password_hash, registration_date)
+       VALUES ($1, $2, $3, $4, $5, NOW())
+       ON CONFLICT (mobile) DO UPDATE SET updated_at = NOW()
+       RETURNING *`,
+      [name.trim(), mobile.trim(), level, cleanUsername, hash]
+    )
+
+    delete created[0].password_hash
+
+    res.status(201).json({ success: true, student: created[0], message: 'Student created successfully.' })
+  } catch (err) {
+    console.error('[admin/students/create]', err)
+    res.status(500).json({ message: 'Server error creating student.' })
+  }
+})
+
 // ── POST /api/admin/students/:id/credentials ──────────────────────────────────
 router.post('/students/:id/credentials', requireAdmin, async (req, res) => {
   try {
