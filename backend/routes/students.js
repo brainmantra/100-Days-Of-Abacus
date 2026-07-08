@@ -475,6 +475,7 @@ router.post('/:id/progress/:dayNumber/submit', async (req, res) => {
     const student = await getStudentById(studentId)
     if (!student) return res.status(404).json({ message: 'Student not found.' })
 
+    const { force } = req.body || {}
     const { rows: dayRows } = await pool.query(
       `SELECT section_data FROM day_records WHERE student_id = $1 AND day_number = $2`,
       [studentId, dayNumber]
@@ -487,7 +488,24 @@ router.post('/:id/progress/:dayNumber/submit', async (req, res) => {
     // Verify all sections are done
     const allDone = sections.every(sec => sectionData[sec]?.status === 'done')
     if (!allDone) {
-      return res.status(400).json({ message: 'Not all sections are completed yet.' })
+      if (force) {
+        // Automatically populate remaining sections with 0 marks
+        for (const sec of sections) {
+          if (sectionData[sec]?.status !== 'done') {
+            sectionData[sec] = {
+              status: 'done',
+              questionCount: sec === 'power_exercise' ? 10 : 5,
+              correct: 0,
+              marks: 0,
+              xpEarned: 0,
+              accuracy: 0,
+              timeTaken: 0,
+            }
+          }
+        }
+      } else {
+        return res.status(400).json({ message: 'Not all sections are completed yet.' })
+      }
     }
 
     // Aggregate totals
@@ -523,9 +541,9 @@ router.post('/:id/progress/:dayNumber/submit', async (req, res) => {
     await pool.query(
       `UPDATE day_records
        SET completed = TRUE, completed_at = NOW(), total_marks = $1, accuracy = $2,
-           time_taken_seconds = $3, xp_earned = $4, answers = $5, updated_at = NOW()
+           time_taken_seconds = $3, xp_earned = $4, answers = $5, section_data = $8, updated_at = NOW()
        WHERE student_id = $6 AND day_number = $7`,
-      [totalMarks, accuracy, totalTime, totalXp, JSON.stringify(studentResponses), studentId, dayNumber]
+      [totalMarks, accuracy, totalTime, totalXp, JSON.stringify(studentResponses), studentId, dayNumber, JSON.stringify(sectionData)]
     )
 
     // Update student's cumulative XP and streak

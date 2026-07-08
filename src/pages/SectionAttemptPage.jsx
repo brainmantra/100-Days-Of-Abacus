@@ -38,6 +38,62 @@ export default function SectionAttemptPage() {
   const [lastXp, setLastXp] = useState(0)
   const [totalXp, setTotalXp] = useState(0)
 
+  const responsesRef = useRef(responses)
+  const sectionSecondsRef = useRef(sectionSeconds)
+  const submittingCheatingRef = useRef(false)
+
+  useEffect(() => {
+    responsesRef.current = responses
+  }, [responses])
+
+  useEffect(() => {
+    sectionSecondsRef.current = sectionSeconds
+  }, [sectionSeconds])
+
+  const triggerAutosubmit = async () => {
+    if (dayNum === 0 || submittingCheatingRef.current) return
+    submittingCheatingRef.current = true
+    setTimerRunning(false)
+    
+    toast.error('Anti-cheating triggered: You switched tabs/windows! Your day is autosubmitted.', { duration: 6000 })
+
+    try {
+      // 1. Submit current section
+      await api.post(`/students/${student.id}/progress/${dayNum}/sections/${section}/submit`, {
+        responses: responsesRef.current,
+        timeTakenSeconds: sectionSecondsRef.current,
+      })
+    } catch (e) {
+      console.error('Cheating submit section error:', e)
+    }
+
+    try {
+      // 2. Force submit full paper
+      await api.post(`/students/${student.id}/progress/${dayNum}/submit`, { force: true })
+    } catch (e) {
+      console.error('Cheating submit paper error:', e)
+    }
+
+    // 3. Redirect to report
+    navigate(`/challenge/day/${dayNum}/report`)
+  }
+
+  useEffect(() => {
+    if (phase !== 'attempt' || dayNum === 0) return
+
+    const handleAction = () => {
+      triggerAutosubmit()
+    }
+
+    document.addEventListener('visibilitychange', handleAction)
+    window.addEventListener('blur', handleAction)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleAction)
+      window.removeEventListener('blur', handleAction)
+    }
+  }, [phase, dayNum])
+
   const questionStartRef = useRef(Date.now())
 
   // Open section & fetch questions
