@@ -233,6 +233,29 @@ async function migrate() {
       console.log('[migrate] ⚠ ADMIN_EMAIL / ADMIN_PASSWORD_PLAIN not set — admin account not seeded.')
     }
 
+    // ── Migrate all student usernames to name-based slugs ─────────────────────
+    console.log('[migrate] Checking student usernames for name-based format...')
+    const { rows: students } = await client.query('SELECT id, name, username, mobile FROM students')
+    const used = new Set()
+    for (const st of students) {
+      let base = st.name.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
+      if (!base) {
+        base = `student_${st.mobile ? st.mobile.slice(-4) : st.id}`
+      }
+      let username = base
+      let suffix = 1
+      while (used.has(username)) {
+        username = `${base}_${suffix++}`
+      }
+      used.add(username)
+      
+      if (st.username !== username) {
+        await client.query('UPDATE students SET username = $1 WHERE id = $2', [username, st.id])
+        console.log(`[migrate] Updated student ID ${st.id}: ${st.username} -> ${username}`)
+      }
+    }
+    console.log('[migrate] ✓ Student username migration complete.')
+
   } catch (err) {
     console.error('[migrate] ✗ Migration failed:', err)
     process.exit(1)

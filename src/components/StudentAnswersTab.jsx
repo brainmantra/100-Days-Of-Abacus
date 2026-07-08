@@ -22,6 +22,15 @@ const SECTION_LABELS = {
 }
 
 export default function StudentAnswersTab({ apiInstance, isTeacherPortal = false }) {
+  const renderAnswerString = (str) => {
+    if (!str) return '(No Answer)'
+    try {
+      const parsed = JSON.parse(str)
+      if (Array.isArray(parsed)) return parsed.join(' ➔ ')
+    } catch (e) {}
+    return str
+  }
+
   const [responses, setResponses] = useState([])
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -103,8 +112,8 @@ export default function StudentAnswersTab({ apiInstance, isTeacherPortal = false
         'Day': `Day ${r.day_number}`,
         'Section': SECTION_LABELS[r.section_name] || r.section_name,
         'Question': r.question_snapshot,
-        'Student Answer': r.student_answer ?? '(No Answer)',
-        'Correct Answer': r.correct_answer,
+        'Student Answer': renderAnswerString(r.student_answer),
+        'Correct Answer': renderAnswerString(r.correct_answer),
         'Result': r.is_correct ? 'Correct' : 'Wrong',
         'Time (s)': r.time_taken_seconds || 0,
         'Submitted At': new Date(r.answered_at).toLocaleString()
@@ -149,8 +158,8 @@ export default function StudentAnswersTab({ apiInstance, isTeacherPortal = false
         `Day ${r.day_number}`,
         r.section_name,
         r.question_snapshot,
-        r.student_answer ?? '',
-        r.correct_answer,
+        renderAnswerString(r.student_answer),
+        renderAnswerString(r.correct_answer),
         r.is_correct ? 'Correct' : 'Wrong',
         `${r.time_taken_seconds || 0}s`
       ])
@@ -301,10 +310,10 @@ export default function StudentAnswersTab({ apiInstance, isTeacherPortal = false
                     <td style={{ fontSize: '0.85rem' }}>{SECTION_LABELS[r.section_name] || r.section_name}</td>
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>{r.question_snapshot}</td>
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: r.is_correct ? 'var(--success)' : 'var(--error)' }}>
-                      {r.student_answer ?? '(No Answer)'}
+                      {renderAnswerString(r.student_answer)}
                     </td>
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--success)' }}>
-                      {r.correct_answer}
+                      {renderAnswerString(r.correct_answer)}
                     </td>
                     <td>
                       <span className={`badge ${r.is_correct ? 'badge-success' : 'badge-error'}`}>

@@ -137,14 +137,32 @@ export default function SectionAttemptPage() {
     }
   };
 
+  const [boxFeedbacks, setBoxFeedbacks] = useState([])
+
   const handleNext = () => {
     const qType = getQuestionType(currentQ);
-    if (qType === 'teacher') {
+    const isPowerExercise = section === 'power_exercise' || currentQ?.section === 'power_exercise';
+    
+    // Parse correct answers
+    const correctAns = currentQ.answer_text ?? currentQ.answer ?? currentQ.computedAnswer ?? currentQ.correct_answer
+    let correctSteps = []
+    try {
+      correctSteps = JSON.parse(correctAns);
+      if (!Array.isArray(correctSteps)) correctSteps = [correctAns];
+    } catch (e) {
+      correctSteps = String(correctAns).split('\n').map(s => s.trim()).filter(Boolean);
+    }
+
+    if (qType === 'teacher' || isPowerExercise) {
       const blocks = getParsedBlocks(currentQ);
-      const boxesCount = blocks.filter(b => b.type === 'box' || b.type === 'step' || b.type === 'paragraph').length;
+      const hasInputBoxes = blocks.some(b => b.type === 'box' || b.type === 'step' || b.type === 'paragraph');
+      const boxesCount = hasInputBoxes
+        ? blocks.filter(b => b.type === 'box' || b.type === 'step' || b.type === 'paragraph').length
+        : correctSteps.length;
+
       let parsed = [];
-      try { parsed = JSON.parse(answer); if (!Array.isArray(parsed)) parsed = [answer]; } catch { parsed = [answer]; }
-      if (parsed.length < boxesCount || parsed.some(v => !v || !String(v).trim())) {
+      try { parsed = JSON.parse(answer); if (!Array.isArray(parsed)) parsed = [answer]; } catch (e) { parsed = [answer]; }
+      if (parsed.length < boxesCount || parsed.some(v => v === undefined || v === null || !String(v).trim())) {
         toast.error('Please fill in all boxes.');
         return;
       }
@@ -157,13 +175,34 @@ export default function SectionAttemptPage() {
     if (feedback) return  // prevent double submit during animation
 
     const timeTaken = (Date.now() - questionStartRef.current) / 1000
-    const correctAns = currentQ.answer_text ?? currentQ.answer ?? currentQ.computedAnswer ?? currentQ.correct_answer
-    const isCorrect = checkAnswer(answer, correctAns, qType)
+    
+    let isCorrect = false
+    let xp = 0
+    
+    if (isPowerExercise) {
+      let parsedStudent = [];
+      try { parsedStudent = JSON.parse(answer); if (!Array.isArray(parsedStudent)) parsedStudent = [answer]; } catch (e) { parsedStudent = [answer]; }
+      
+      const normalize = s => String(s).toLowerCase().replace(/\s+/g, ' ').trim()
+      let correctStepsCount = 0
+      
+      const feedbacks = correctSteps.map((cStep, idx) => {
+        const stepOk = normalize(parsedStudent[idx]) === normalize(cStep)
+        if (stepOk) correctStepsCount++
+        return stepOk ? 'correct' : 'incorrect'
+      })
+      
+      setBoxFeedbacks(feedbacks)
+      isCorrect = (correctStepsCount === correctSteps.length)
+      setFeedback(isCorrect ? 'correct' : 'incorrect')
+      xp = correctStepsCount * 10
+    } else {
+      isCorrect = checkAnswer(answer, correctAns, qType)
+      setFeedback(isCorrect ? 'correct' : 'incorrect')
+      xp = isCorrect ? 10 : 0
+    }
 
-    setFeedback(isCorrect ? 'correct' : 'incorrect')
-
-    const xp = isCorrect ? 10 : 0
-    if (isCorrect) {
+    if (xp > 0) {
       setLastXp(xp)
       setTotalXp(prev => prev + xp)
       setShowXp(true)
@@ -184,6 +223,7 @@ export default function SectionAttemptPage() {
 
     setTimeout(() => {
       setFeedback(null)
+      setBoxFeedbacks([])
       setAnswer('')
       if (currentIndex < questions.length - 1) {
         setCurrentIndex(i => i + 1)
@@ -193,7 +233,7 @@ export default function SectionAttemptPage() {
         setTimerRunning(false)
         submitSection(newResponses)
       }
-    }, 700)
+    }, 1500) // 1.5s delay to let them see step-by-step box colors!
   }
 
   const submitSection = async (finalResponses) => {
@@ -446,9 +486,27 @@ export default function SectionAttemptPage() {
 
         {/* Teacher / free-text */}
         {isTeacher && (() => {
-          const blocks = getParsedBlocks(currentQ);
+          const blocks = [...getParsedBlocks(currentQ)];
+          const isPowerExercise = section === 'power_exercise' || currentQ?.section === 'power_exercise';
+          
+          const correctAns = currentQ.answer_text ?? currentQ.answer ?? currentQ.computedAnswer ?? currentQ.correct_answer;
+          let correctSteps = [];
+          try {
+            correctSteps = JSON.parse(correctAns);
+            if (!Array.isArray(correctSteps)) correctSteps = [correctAns];
+          } catch (e) {
+            correctSteps = String(correctAns).split('\n').map(s => s.trim()).filter(Boolean);
+          }
+
+          const hasInputBoxes = blocks.some(b => b.type === 'box' || b.type === 'step' || b.type === 'paragraph');
+          if (isPowerExercise && !hasInputBoxes) {
+            correctSteps.forEach(() => {
+              blocks.push({ type: 'step', answer: '' });
+            });
+          }
+
           let parsedAns = [];
-          try { parsedAns = JSON.parse(answer); if(!Array.isArray(parsedAns)) parsedAns = [answer]; } catch { parsedAns = [answer]; }
+          try { parsedAns = JSON.parse(answer); if(!Array.isArray(parsedAns)) parsedAns = [answer]; } catch (e) { parsedAns = [answer]; }
           let boxIndex = 0;
 
           return (
@@ -471,12 +529,15 @@ export default function SectionAttemptPage() {
                   return blocks.map((block, idx) => {
                     if (block.type === 'box' || block.type === 'step' || block.type === 'paragraph') {
                       const currentBoxIdx = boxIndex++;
+                      const boxFeedbackClass = boxFeedbacks[currentBoxIdx] 
+                        ? `feedback-${boxFeedbacks[currentBoxIdx]}` 
+                        : (feedback ? `feedback-${feedback}` : '');
                       
                       if (block.type === 'paragraph') {
                         return (
                           <textarea
                             key={idx}
-                            className={feedback ? `feedback-${feedback}` : ''}
+                            className={boxFeedbackClass}
                             style={{
                               width: '100%', minHeight: '100px', display: 'block', margin: '0.75rem 0',
                               padding: '0.5rem', fontSize: '1.1rem', borderRadius: '4px', border: '1px solid var(--border)',
@@ -499,9 +560,9 @@ export default function SectionAttemptPage() {
                         <input
                           key={idx}
                           type="text"
-                          className={feedback ? `feedback-${feedback}` : ''}
+                          className={boxFeedbackClass}
                           style={{
-                            width: '100px', textAlign: 'center', display: 'inline-block', margin: '0 0.5rem',
+                            width: '120px', textAlign: 'center', display: 'inline-block', margin: '0 0.5rem',
                             padding: '0.3rem', fontSize: '1.1rem', borderRadius: '4px', border: '1px solid var(--border)'
                           }}
                           value={parsedAns[currentBoxIdx] || ''}
@@ -525,6 +586,15 @@ export default function SectionAttemptPage() {
                       }
                       
                       return inputElem;
+                    } else if (block.type === 'image') {
+                      return (
+                        <img
+                          key={idx}
+                          src={block.content}
+                          style={{ maxWidth: '100%', maxHeight: '300px', display: 'block', margin: '1rem auto', borderRadius: '8px', boxShadow: 'var(--shadow-md)' }}
+                          alt="Question Visual"
+                        />
+                      );
                     } else if (block.type === 'instruction') {
                       return (
                         <div key={idx} style={{ 

@@ -19,7 +19,7 @@ export const LEVEL_SECTIONS = {
 
 // Teacher-input sections that come from teacher_questions table, not question_bank
 export const TEACHER_INPUT_SECTIONS = new Set([
-  'teacher_input', 'form_the_question', 'cracking', 'bodmas'
+  'teacher_input', 'form_the_question', 'cracking', 'bodmas', 'power_exercise'
 ])
 
 // ── Every-5th-day check ────────────────────────────────────────────────────────
@@ -67,11 +67,22 @@ export async function getTeacherQuestion(level, dayNumber, section = 'teacher_da
 
 // ── Get section list for a level on a specific day ─────────────────────────────
 export function getSectionsForLevel(level, dayNumber) {
+  if (level !== 'l1' && dayNumber > 0 && dayNumber % 5 === 0) {
+    return ['power_exercise']
+  }
   return LEVEL_SECTIONS[level] || ['abacus']
 }
 
 export async function getSectionsForLevelAsync(level, dayNumber) {
-  const defaultSections = LEVEL_SECTIONS[level] || ['abacus']
+  if (level !== 'l1' && dayNumber > 0 && dayNumber % 5 === 0) {
+    return ['power_exercise']
+  }
+  
+  const defaultSections = [...(LEVEL_SECTIONS[level] || ['abacus'])]
+  if (level !== 'l1' && dayNumber === 0) {
+    defaultSections.push('power_exercise')
+  }
+
   try {
     const { rows } = await pool.query(
       `SELECT DISTINCT section FROM teacher_questions 
@@ -105,4 +116,5 @@ export const SECTION_LABELS = {
   two_steps:         '📋 2 Steps',
   cracking:          '✏ Cracking',
   bodmas:            '🧮 Bodmas',
+  power_exercise:    '⚡ Power Exercise',
 }

@@ -391,6 +391,74 @@ export default function TeacherDashboard() {
                               const newB = [...qBlocks]; newB[idx].content = e.target.value; setQBlocks(newB);
                             }} 
                           />
+                        ) : block.type === 'image' ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+                            <div 
+                              onPaste={e => {
+                                const items = e.clipboardData.items;
+                                for (let i = 0; i < items.length; i++) {
+                                  if (items[i].type.indexOf("image") !== -1) {
+                                    const blob = items[i].getAsFile();
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => {
+                                      const newB = [...qBlocks];
+                                      newB[idx].content = reader.result;
+                                      setQBlocks(newB);
+                                    };
+                                    reader.readAsDataURL(blob);
+                                  }
+                                }
+                              }}
+                              style={{
+                                border: '2px dashed var(--border)',
+                                borderRadius: '6px',
+                                padding: '1rem',
+                                textAlign: 'center',
+                                background: 'rgba(255, 255, 255, 0.02)',
+                                color: 'var(--text-secondary)'
+                              }}
+                            >
+                              <input 
+                                type="file" 
+                                accept="image/*"
+                                onChange={e => {
+                                  const file = e.target.files[0];
+                                  if (file) {
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => {
+                                      const newB = [...qBlocks];
+                                      newB[idx].content = reader.result;
+                                      setQBlocks(newB);
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }}
+                                style={{ display: 'block', margin: '0 auto 0.5rem' }}
+                              />
+                              Or click here and Paste image (Ctrl+V)
+                            </div>
+                            {block.content && (
+                              <div style={{ marginTop: '0.5rem', position: 'relative', display: 'inline-block' }}>
+                                <img 
+                                  src={block.content} 
+                                  alt="Preview" 
+                                  style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '4px', border: '1px solid var(--border)' }} 
+                                />
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost btn-sm"
+                                  style={{ position: 'absolute', top: 5, right: 5, background: 'rgba(0,0,0,0.6)', color: '#fff', borderRadius: '50%', width: 24, height: 24, padding: 0 }}
+                                  onClick={() => {
+                                    const newB = [...qBlocks];
+                                    newB[idx].content = '';
+                                    setQBlocks(newB);
+                                  }}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         ) : (
                           <textarea 
                             rows={2} placeholder={`Enter ${block.type === 'text' ? 'question' : block.type} text...`}
@@ -412,6 +480,7 @@ export default function TeacherDashboard() {
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '1rem' }}>
                     <button type="button" className="btn btn-ghost btn-sm" onClick={() => setQBlocks([...qBlocks, { type: 'instruction', content: '' }])}>+ Instruction</button>
                     <button type="button" className="btn btn-ghost btn-sm" onClick={() => setQBlocks([...qBlocks, { type: 'text', content: '' }])}>+ Question</button>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setQBlocks([...qBlocks, { type: 'image', content: '' }])}>+ Image</button>
                     <button type="button" className="btn btn-ghost btn-sm" onClick={() => setQBlocks([...qBlocks, { type: 'example', content: '' }])}>+ Example</button>
                     <button type="button" className="btn btn-ghost btn-sm" onClick={() => setQBlocks([...qBlocks, { type: 'box', answer: '' }])}>+ Answer Box</button>
                     <button type="button" className="btn btn-ghost btn-sm" onClick={() => setQBlocks([...qBlocks, { type: 'step', answer: '' }])}>+ Step Box</button>

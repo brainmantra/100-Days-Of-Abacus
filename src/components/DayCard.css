@@ -273,4 +273,21 @@
   font-weight: 800;
   box-shadow: 0 2px 10px rgba(239, 68, 68, 0.2);
   cursor: not-allowed;
+  }
+
+/* Responsive media query for horizontal DayCard */
+@media (max-width: 820px) {
+  .day-card-container.horizontal {
+    flex-direction: column !important;
+    gap: 1.5rem !important;
+  }
+  .day-card-container.horizontal .day-card-left {
+    border-right: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    padding-right: 0 !important;
+    padding-bottom: 1.5rem !important;
+  }
+  .day-card-container.horizontal .day-card-right .day-card-sections-list {
+    grid-template-columns: 1fr !important;
+  }
 }

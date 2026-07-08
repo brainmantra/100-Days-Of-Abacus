@@ -17,17 +17,18 @@ const LEVEL_SECTIONS = {
 }
 
 const SECTION_LABELS = {
-  abacus: 'Abacus Section',
-  visual: 'Visual Mental Math',
-  multiplication: 'Multiplication sums',
-  division: 'Division sums',
-  tables: 'Tables verification',
-  form_the_question: 'Form The Question',
-  teacher_input: 'Teacher Section',
-  teacher_day: 'Special Day Question',
-  two_steps: '2 Steps',
-  cracking: 'Cracking',
-  bodmas: 'Bodmas',
+  abacus: '🧮 Abacus Section',
+  visual: '👁 Visual Mental Math',
+  multiplication: '✖ Multiplication sums',
+  division: '➗ Division sums',
+  tables: '📋 Tables verification',
+  form_the_question: '✏ Form The Question',
+  teacher_input: '👨‍🏫 Teacher Section',
+  teacher_day: '🌟 Special Day Question',
+  two_steps: '📋 2 Steps',
+  cracking: '✏ Cracking',
+  bodmas: '🧮 Bodmas',
+  power_exercise: '⚡ Power Exercise',
 }
 
 const SECTION_SHORT_LABELS = {
@@ -42,9 +43,10 @@ const SECTION_SHORT_LABELS = {
   two_steps: '📋 2 Steps',
   cracking: '✏ Cracking',
   bodmas: '🧮 Bodmas',
+  power_exercise: '⚡ Power',
 }
 
-export default function DayCard({ dayNumber, registrationDate, dayRecord, isDemo }) {
+export default function DayCard({ dayNumber, registrationDate, dayRecord, isDemo, horizontal }) {
   const navigate = useNavigate()
   const { student } = useAuth()
   const dayDate = getDayDate(registrationDate, dayNumber)
@@ -62,6 +64,9 @@ export default function DayCard({ dayNumber, registrationDate, dayRecord, isDemo
   }
   const _level = normalizeLevel0(student?.level)
   const _expectedSecs = (LEVEL_SECTIONS[_level] || ['abacus']).filter(s => s !== 'teacher_input')
+  if (_level !== 'l1' && isDemo) {
+    _expectedSecs.push('power_exercise')
+  }
   const _sectionData = dayRecord?.section_data || {}
   const allSectionsDone = !isDemo && _expectedSecs.length > 0 &&
     _expectedSecs.every(s => _sectionData[s]?.status === 'done')
@@ -134,7 +139,10 @@ export default function DayCard({ dayNumber, registrationDate, dayRecord, isDemo
     return map[low] || 'l1'
   }
   const studentLevel = normalizeLevel(student?.level)
-  const defaultSecs = LEVEL_SECTIONS[studentLevel] || ['abacus']
+  const defaultSecs = [...(LEVEL_SECTIONS[studentLevel] || ['abacus'])]
+  if (studentLevel !== 'l1' && isDemo) {
+    defaultSecs.push('power_exercise')
+  }
   const recordedSecs = dayRecord?.section_data ? Object.keys(dayRecord.section_data) : []
   const sections = [...defaultSecs]
   recordedSecs.forEach(sec => {
@@ -143,6 +151,77 @@ export default function DayCard({ dayNumber, registrationDate, dayRecord, isDemo
     }
   })
   const sectionData = dayRecord?.section_data || {}
+
+  if (horizontal) {
+    return (
+      <div className={`day-card-container horizontal ${status}`} style={{ display: 'flex', gap: '2rem', padding: '2rem', background: 'linear-gradient(135deg, rgba(108, 99, 255, 0.08), rgba(0, 212, 170, 0.05))', borderRadius: 'var(--radius-lg)', border: '1px solid var(--primary)', position: 'relative', overflow: 'hidden' }}>
+        {/* Left Side */}
+        <div className="day-card-left" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRight: '1px solid var(--border)', paddingRight: '2rem' }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 className="day-card-title" style={{ fontSize: '1.8rem' }}>Demo Day</h2>
+              <span className={`day-card-badge badge-${status}`}>
+                {cfg.badge}
+              </span>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: '1.4' }}>
+              Test your skills on this sample set before you start your actual abacus 100 days challenge.
+            </p>
+            <div className="day-card-tags" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {sections.map(sec => (
+                <span key={sec} className="day-card-tag-pill">
+                  {SECTION_SHORT_LABELS[sec] || sec}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <button 
+            className={`day-card-footer ${cfg.btnClass}`}
+            onClick={handleStartResume}
+            style={{ marginTop: '2rem', padding: '0.8rem' }}
+          >
+            <span className="footer-icon">{cfg.icon}</span>
+            Start Practice
+          </button>
+        </div>
+
+        {/* Right Side */}
+        <div className="day-card-right" style={{ flex: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <h3 style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: '1rem', fontWeight: 600 }}>📋 PRACTICE SECTIONS</h3>
+          <div className="day-card-sections-list" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', flexGrow: 0, marginBottom: 0 }}>
+            {sections.map((sec, idx) => {
+              const secStatus = sectionData[sec]?.status || 'not_started'
+              const isSecDone = secStatus === 'done' || dayRecord?.completed
+              
+              return (
+                <div key={sec} className="day-card-section-row" style={{ margin: 0, padding: '1rem' }}>
+                  <div className="day-card-section-meta" style={{ marginBottom: '0.5rem' }}>
+                    <span className="day-card-section-index">Part {idx + 1}</span>
+                    {isSecDone && (
+                      <span className="day-card-section-badge done">
+                        DONE
+                      </span>
+                    )}
+                  </div>
+                  <div className="day-card-section-name" style={{ fontSize: '0.9rem', marginBottom: '1rem' }}>
+                    {SECTION_LABELS[sec] || sec}
+                  </div>
+                  <button 
+                    className="btn-solve-section"
+                    onClick={() => handleSolveSection(sec)}
+                    disabled={!clickable}
+                  >
+                    {isSecDone ? 'Review' : 'Solve Part →'}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={`day-card-container ${status}`}>

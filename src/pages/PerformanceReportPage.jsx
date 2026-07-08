@@ -80,6 +80,15 @@ export default function PerformanceReportPage() {
   const accuracy = totalQs > 0 ? Math.round((totalCorrect / totalQs) * 100) : 0
   const avgTime = totalQs > 0 ? Math.round((day.time_taken_seconds || 0) / totalQs) : 0
 
+  const formatDisplayAnswer = (val) => {
+    if (!val) return ''
+    try {
+      const parsed = JSON.parse(val)
+      if (Array.isArray(parsed)) return parsed.join(' ➔ ')
+    } catch (e) {}
+    return String(val)
+  }
+
   return (
     <div className="page page-bg-dots" style={{ paddingBottom: '4rem' }}>
 
@@ -195,11 +204,11 @@ export default function PerformanceReportPage() {
                     </div>
                     <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', fontSize: '0.85rem' }}>
                       <span style={{ color: r.is_correct ? 'var(--success)' : 'var(--error)' }}>
-                        Your answer: <strong>{r.student_answer ?? '(no answer)'}</strong>
+                        Your answer: <strong>{formatDisplayAnswer(r.student_answer) || '(no answer)'}</strong>
                       </span>
                       {!r.is_correct && (
                         <span style={{ color: 'var(--success)' }}>
-                          Correct: <strong>{r.correct_answer}</strong>
+                          Correct: <strong>{formatDisplayAnswer(r.correct_answer)}</strong>
                         </span>
                       )}
                       <span style={{ color: 'var(--text-muted)' }}>⏱ {r.time_taken_seconds}s</span>

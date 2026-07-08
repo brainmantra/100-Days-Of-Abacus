@@ -204,10 +204,10 @@ router.get('/:id/progress/:dayNumber/sections', async (req, res) => {
         section: sec,
         label: SECTION_LABELS[sec] || sec,
         status: 'not_started',
-        questionCount: TEACHER_INPUT_SECTIONS.has(sec) ? 1 : 5,
+        questionCount: sec === 'power_exercise' ? 10 : (TEACHER_INPUT_SECTIONS.has(sec) ? 1 : 5),
         timeTaken: 0,
         marks: 0,
-        ready: !TEACHER_INPUT_SECTIONS.has(sec) && level !== 'l1', // teacher sections not available in demo
+        ready: sec === 'power_exercise' || (!TEACHER_INPUT_SECTIONS.has(sec) && level !== 'l1'),
         isDemo: true,
       }))
       return res.json({
@@ -313,6 +313,31 @@ router.get('/:id/progress/:dayNumber/sections/:section/questions', async (req, r
 
     // Every-5th-day or teacher section or level 1: fetch from teacher_questions
     if (section === 'teacher_day' || TEACHER_INPUT_SECTIONS.has(section) || level === 'l1') {
+      if (dayNumber === 0 && section === 'power_exercise') {
+        const demoQuestion = {
+          id: 9999,
+          section: 'power_exercise',
+          question_type: 'teacher',
+          question_text: JSON.stringify([
+            { type: 'text', content: 'Add 11 \n10 Times \nWrite Each Step Answer' },
+            { type: 'step', answer: '11' },
+            { type: 'step', answer: '22' },
+            { type: 'step', answer: '33' },
+            { type: 'step', answer: '44' },
+            { type: 'step', answer: '55' },
+            { type: 'step', answer: '66' },
+            { type: 'step', answer: '77' },
+            { type: 'step', answer: '88' },
+            { type: 'step', answer: '99' },
+            { type: 'step', answer: '110' },
+          ]),
+          answer: JSON.stringify(['11', '22', '33', '44', '55', '66', '77', '88', '99', '110']),
+          display_text: 'Add 11 \n10 Times \nWrite Each Step Answer',
+          format_example: 'Write the value of each step',
+        }
+        return res.json({ questions: [demoQuestion] })
+      }
+
       const tq = await getTeacherQuestion(level, dayNumber, section === 'teacher_day' ? 'teacher_day' : section)
       if (!tq) {
         return res.status(404).json({
@@ -361,10 +386,37 @@ router.post('/:id/progress/:dayNumber/sections/:section/submit', async (req, res
     const tableName = level === 'alumni' ? 'responses_alumni' : `responses_l${level.replace('l', '')}`
 
     // Calculate section score
-    const correct = responses.filter(r => r.is_correct).length
-    const marks = correct * 10
-    const xpEarned = correct * 10
-    const accuracy = responses.length > 0 ? Math.round((correct / responses.length) * 100) : 0
+    let correct = responses.filter(r => r.is_correct).length
+    let totalQuestions = responses.length
+    let marks = correct * 10
+    let xpEarned = correct * 10
+    let accuracy = totalQuestions > 0 ? Math.round((correct / totalQuestions) * 100) : 0
+
+    if (section === 'power_exercise') {
+      const r = responses[0]
+      if (r) {
+        try {
+          const studentAnsList = JSON.parse(r.student_answer)
+          const correctAnsList = JSON.parse(r.correct_answer)
+          if (Array.isArray(studentAnsList) && Array.isArray(correctAnsList)) {
+            const normalize = s => String(s).toLowerCase().replace(/\s+/g, ' ').trim()
+            let correctSteps = 0
+            correctAnsList.forEach((cStep, idx) => {
+              if (normalize(studentAnsList[idx]) === normalize(cStep)) {
+                correctSteps++
+              }
+            })
+            correct = correctSteps
+            totalQuestions = correctAnsList.length
+            marks = correct * 10
+            xpEarned = correct * 10
+            accuracy = totalQuestions > 0 ? Math.round((correct / totalQuestions) * 100) : 0
+          }
+        } catch (e) {
+          console.error('Error parsing power exercise answers on submit:', e)
+        }
+      }
+    }
 
     // Insert responses into per-level table
     for (const r of responses) {
@@ -381,7 +433,7 @@ router.post('/:id/progress/:dayNumber/sections/:section/submit', async (req, res
           r.student_answer !== undefined ? String(r.student_answer) : null,
           r.is_correct,
           r.time_taken_seconds || 0,
-          r.is_correct ? 10 : 0,
+          section === 'power_exercise' ? xpEarned : (r.is_correct ? 10 : 0),
         ]
       )
     }
@@ -394,7 +446,7 @@ router.post('/:id/progress/:dayNumber/sections/:section/submit', async (req, res
     const sectionData = dayRows[0]?.section_data || {}
     sectionData[section] = {
       status: 'done',
-      questionCount: responses.length,
+      questionCount: totalQuestions,
       correct,
       marks,
       xpEarned,
@@ -458,6 +510,7 @@ router.post('/:id/progress/:dayNumber/submit', async (req, res) => {
     totalXp += streakBonus
 
     // Query all student responses from the per-level table
+    const tableName = level === 'alumni' ? 'responses_alumni' : `responses_l${level.replace('l', '')}`
     const { rows: studentResponses } = await pool.query(
       `SELECT section_name, question_snapshot, correct_answer, student_answer, is_correct, time_taken_seconds, xp_earned, answered_at 
        FROM ${tableName} 

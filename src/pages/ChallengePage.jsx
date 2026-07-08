@@ -237,18 +237,50 @@ export default function ChallengePage() {
                 <div className="spinner" />
               </div>
             ) : (
-              <section className="day-grid animate-fade" style={{ animationDelay: '0.1s' }}>
-                {[0, ...Array.from({ length: maxRenderDay }, (_, i) => i + 1)].map((dayNum, index) => (
-                  <div key={dayNum} className={dayNum === 0 ? 'tour-step-demo' : ''}>
-                    <DayCard
-                      dayNumber={dayNum}
-                      registrationDate={student.first_login_date || student.registration_date}
-                      dayRecord={dayNum === 0 ? null : dayMap[dayNum]}
-                      isDemo={dayNum === 0}
-                    />
+              <>
+                {/* Horizontal Demo Day Card */}
+                <div className="demo-day-horizontal-card-container tour-step-demo" style={{ marginBottom: '2.5rem' }}>
+                  <DayCard
+                    dayNumber={0}
+                    registrationDate={student.first_login_date || student.registration_date}
+                    dayRecord={null}
+                    isDemo={true}
+                    horizontal={true}
+                  />
+                  <div style={{ 
+                    fontSize: '0.85rem', 
+                    marginTop: '0.75rem', 
+                    textAlign: 'center', 
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.4rem',
+                    background: 'rgba(108, 99, 255, 0.05)',
+                    padding: '0.6rem 1rem',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(108, 99, 255, 0.15)',
+                    color: 'var(--primary-light)'
+                  }}>
+                    <span>🗓️</span> Your challenge starts from 15th July 2026
                   </div>
-                ))}
-              </section>
+                </div>
+
+                {/* Challenge Day Grid */}
+                <h3 style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', fontWeight: 600 }}>🗺️ CHALLENGE MAP</h3>
+                <section className="day-grid animate-fade" style={{ animationDelay: '0.1s' }}>
+                  {Array.from({ length: maxRenderDay }, (_, i) => i + 1).map((dayNum, index) => (
+                    <div key={dayNum}>
+                      <DayCard
+                        dayNumber={dayNum}
+                        registrationDate={student.first_login_date || student.registration_date}
+                        dayRecord={dayMap[dayNum]}
+                        isDemo={false}
+                      />
+                    </div>
+                  ))}
+                </section>
+              </>
             )}
           </>
         ) : (
