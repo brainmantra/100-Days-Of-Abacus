@@ -215,11 +215,30 @@ router.get('/:id/progress/:dayNumber/sections', async (req, res) => {
         } else {
           ready = true
         }
+        let countVal = 5;
+        if (sec === 'power_exercise') {
+          countVal = 10;
+        } else if (TEACHER_INPUT_SECTIONS.has(sec) || level === 'l1' || level === 'beginner') {
+          countVal = 1;
+          const tq = await getTeacherQuestion(level, 0, sec)
+          ready = !!tq
+          if (tq && tq.question) {
+            try {
+              const parsed = typeof tq.question === 'string' ? JSON.parse(tq.question) : tq.question
+              if (parsed && typeof parsed === 'object' && Array.isArray(parsed.items)) {
+                const qItems = parsed.items.filter(item => item.type === 'question')
+                if (qItems.length > 0) {
+                  countVal = qItems.length
+                }
+              }
+            } catch (e) {}
+          }
+        }
         result.push({
           section: sec,
           label: SECTION_LABELS[sec] || sec,
           status: 'not_started',
-          questionCount: sec === 'power_exercise' ? 10 : (TEACHER_INPUT_SECTIONS.has(sec) || level === 'l1' || level === 'beginner' ? 1 : 5),
+          questionCount: countVal,
           timeTaken: 0,
           marks: 0,
           ready,
@@ -249,15 +268,30 @@ router.get('/:id/progress/:dayNumber/sections', async (req, res) => {
     const result = []
     for (const sec of sections) {
       let ready = true
-      if (TEACHER_INPUT_SECTIONS.has(sec) || level === 'l1' || level === 'beginner') {
+      let countVal = 5;
+      if (sec === 'power_exercise') {
+        countVal = 10;
+      } else if (TEACHER_INPUT_SECTIONS.has(sec) || level === 'l1' || level === 'beginner') {
+        countVal = 1;
         const tq = await getTeacherQuestion(level, dayNumber, sec)
         ready = !!tq
+        if (tq && tq.question) {
+          try {
+            const parsed = typeof tq.question === 'string' ? JSON.parse(tq.question) : tq.question
+            if (parsed && typeof parsed === 'object' && Array.isArray(parsed.items)) {
+              const qItems = parsed.items.filter(item => item.type === 'question')
+              if (qItems.length > 0) {
+                countVal = qItems.length
+              }
+            }
+          } catch (e) {}
+        }
       }
       result.push({
         section: sec,
         label: SECTION_LABELS[sec] || sec,
         status: sectionData[sec]?.status || 'not_started',
-        questionCount: sectionData[sec]?.questionCount || (TEACHER_INPUT_SECTIONS.has(sec) || level === 'l1' || level === 'beginner' ? 1 : 5),
+        questionCount: sectionData[sec]?.questionCount || countVal,
         timeTaken: sectionData[sec]?.timeTaken || 0,
         marks: sectionData[sec]?.marks || 0,
         ready,

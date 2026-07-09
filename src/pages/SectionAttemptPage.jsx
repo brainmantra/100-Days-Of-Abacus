@@ -135,7 +135,45 @@ export default function SectionAttemptPage() {
           return
         }
 
-        setQuestions(res.data.questions || [])
+        const rawQs = res.data.questions || []
+        const flatQs = []
+        rawQs.forEach(q => {
+          if (q.question) {
+            try {
+              const parsed = typeof q.question === 'string' ? JSON.parse(q.question) : q.question
+              if (parsed && typeof parsed === 'object' && Array.isArray(parsed.items)) {
+                parsed.items.forEach(item => {
+                  if (item.type === 'question') {
+                    flatQs.push({
+                      id: item.id,
+                      dbQuestionId: q.id,
+                      virtualType: 'teacher_custom',
+                      questionType: item.questionType,
+                      questionText: item.questionText,
+                      image: item.image,
+                      options: item.options || [],
+                      correctAnswer: item.correctAnswer,
+                    })
+                  } else if (item.type === 'image_only') {
+                    flatQs.push({
+                      id: item.id,
+                      dbQuestionId: q.id,
+                      virtualType: 'image_only',
+                      questionText: item.description || '',
+                      image: item.image,
+                      options: [],
+                      correctAnswer: null,
+                    })
+                  }
+                })
+                return
+              }
+            } catch (e) {}
+          }
+          flatQs.push(q)
+        })
+
+        setQuestions(flatQs)
         setPhase('countdown')
       } catch (err) {
         toast.error(err.response?.data?.message || 'Could not load questions.')
@@ -320,66 +358,136 @@ export default function SectionAttemptPage() {
   const [boxFeedbacks, setBoxFeedbacks] = useState([])
 
   const handleNext = () => {
-    const qType = getQuestionType(currentQ);
-    const isPowerExercise = section === 'power_exercise' || currentQ?.section === 'power_exercise';
-    
-    // Parse correct answers
-    const correctAns = currentQ.answer_text ?? currentQ.answer ?? currentQ.computedAnswer ?? currentQ.correct_answer
-    let correctSteps = []
-    try {
-      correctSteps = JSON.parse(correctAns);
-      if (!Array.isArray(correctSteps)) correctSteps = [correctAns];
-    } catch (e) {
-      correctSteps = String(correctAns).split('\n').map(s => s.trim()).filter(Boolean);
-    }
+    if (feedback) return  // prevent double submit during animation
 
-    if (qType === 'teacher' || isPowerExercise) {
-      const blocks = getParsedBlocks(currentQ);
-      const hasInputBoxes = blocks.some(b => b.type === 'box' || b.type === 'step' || b.type === 'paragraph');
-      const boxesCount = hasInputBoxes
-        ? blocks.filter(b => b.type === 'box' || b.type === 'step' || b.type === 'paragraph').length
-        : correctSteps.length;
+    const isVirtual = currentQ?.virtualType === 'teacher_custom' || currentQ?.virtualType === 'image_only'
 
-      let parsed = [];
-      try { parsed = JSON.parse(answer); if (!Array.isArray(parsed)) parsed = [answer]; } catch (e) { parsed = [answer]; }
-      if (parsed.length < boxesCount || parsed.some(v => v === undefined || v === null || !String(v).trim())) {
-        toast.error('Please fill in all boxes.');
-        return;
+    if (isVirtual) {
+      if (currentQ.virtualType === 'teacher_custom') {
+        if (currentQ.questionType === 'checkbox') {
+          let parsed = []
+          try { parsed = JSON.parse(answer); } catch (e) {}
+          if (!Array.isArray(parsed) || parsed.length === 0) {
+            toast.error('Please select at least one option.');
+            return;
+          }
+        } else {
+          if (!String(answer).trim()) {
+            toast.error('Please enter an answer.');
+            return;
+          }
+        }
       }
     } else {
-      if (!String(answer).trim()) {
-        toast.error('Please enter an answer.');
-        return;
+      const qType = getQuestionType(currentQ);
+      const isPowerExercise = section === 'power_exercise' || currentQ?.section === 'power_exercise';
+      
+      // Parse correct answers
+      const correctAns = currentQ.answer_text ?? currentQ.answer ?? currentQ.computedAnswer ?? currentQ.correct_answer
+      let correctSteps = []
+      try {
+        correctSteps = JSON.parse(correctAns);
+        if (!Array.isArray(correctSteps)) correctSteps = [correctAns];
+      } catch (e) {
+        correctSteps = String(correctAns).split('\n').map(s => s.trim()).filter(Boolean);
+      }
+
+      if (qType === 'teacher' || isPowerExercise) {
+        const blocks = getParsedBlocks(currentQ);
+        const hasInputBoxes = blocks.some(b => b.type === 'box' || b.type === 'step' || b.type === 'paragraph');
+        const boxesCount = hasInputBoxes
+          ? blocks.filter(b => b.type === 'box' || b.type === 'step' || b.type === 'paragraph').length
+          : correctSteps.length;
+
+        let parsed = [];
+        try { parsed = JSON.parse(answer); if (!Array.isArray(parsed)) parsed = [answer]; } catch (e) { parsed = [answer]; }
+        if (parsed.length < boxesCount || parsed.some(v => v === undefined || v === null || !String(v).trim())) {
+          toast.error('Please fill in all boxes.');
+          return;
+        }
+      } else {
+        if (!String(answer).trim()) {
+          toast.error('Please enter an answer.');
+          return;
+        }
       }
     }
-    if (feedback) return  // prevent double submit during animation
 
     const timeTaken = (Date.now() - questionStartRef.current) / 1000
     
     let isCorrect = false
     let xp = 0
-    
-    if (isPowerExercise) {
-      let parsedStudent = [];
-      try { parsedStudent = JSON.parse(answer); if (!Array.isArray(parsedStudent)) parsedStudent = [answer]; } catch (e) { parsedStudent = [answer]; }
-      
-      const normalize = s => String(s).toLowerCase().replace(/\s+/g, ' ').trim()
-      let correctStepsCount = 0
-      
-      const feedbacks = correctSteps.map((cStep, idx) => {
-        const stepOk = normalize(parsedStudent[idx]) === normalize(cStep)
-        if (stepOk) correctStepsCount++
-        return stepOk ? 'correct' : 'incorrect'
-      })
-      
-      setBoxFeedbacks(feedbacks)
-      isCorrect = (correctStepsCount === correctSteps.length)
-      setFeedback(isCorrect ? 'correct' : 'incorrect')
-      xp = correctStepsCount * 10
+    let correctAnsStr = ''
+
+    if (isVirtual) {
+      if (currentQ.virtualType === 'image_only') {
+        isCorrect = true
+        xp = 0
+        correctAnsStr = ''
+        setFeedback('correct')
+      } else {
+        const isCheckbox = currentQ.questionType === 'checkbox'
+        const hasCorrectAnswer = isCheckbox
+          ? (Array.isArray(currentQ.correctAnswer) && currentQ.correctAnswer.length > 0)
+          : (currentQ.correctAnswer && String(currentQ.correctAnswer).trim() !== '')
+
+        if (hasCorrectAnswer) {
+          if (currentQ.questionType === 'multiple_choice') {
+            const correctOpt = currentQ.options.find(o => o.id === currentQ.correctAnswer)
+            correctAnsStr = correctOpt ? correctOpt.text : String(currentQ.correctAnswer)
+            isCorrect = correctAnsStr.toLowerCase().trim() === answer.toLowerCase().trim()
+          } else if (currentQ.questionType === 'checkbox') {
+            const correctOpts = currentQ.options.filter(o => currentQ.correctAnswer.includes(o.id)).map(o => o.text)
+            correctAnsStr = JSON.stringify(correctOpts)
+            let studentOpts = []
+            try { studentOpts = JSON.parse(answer) || [] } catch (e) {}
+            isCorrect = correctOpts.length === studentOpts.length && correctOpts.every(o => studentOpts.includes(o))
+          } else {
+            correctAnsStr = String(currentQ.correctAnswer).trim()
+            isCorrect = correctAnsStr.toLowerCase().trim() === answer.toLowerCase().trim()
+          }
+          xp = isCorrect ? 10 : 0
+          setFeedback(isCorrect ? 'correct' : 'incorrect')
+        } else {
+          isCorrect = null
+          xp = 0
+          setFeedback('correct') // visual confirmation for saving response
+        }
+      }
     } else {
-      isCorrect = checkAnswer(answer, correctAns, qType)
-      setFeedback(isCorrect ? 'correct' : 'incorrect')
-      xp = isCorrect ? 10 : 0
+      const qType = getQuestionType(currentQ);
+      const isPowerExercise = section === 'power_exercise' || currentQ?.section === 'power_exercise';
+      const correctAns = currentQ.answer_text ?? currentQ.answer ?? currentQ.computedAnswer ?? currentQ.correct_answer
+      let correctSteps = []
+      try {
+        correctSteps = JSON.parse(correctAns);
+        if (!Array.isArray(correctSteps)) correctSteps = [correctAns];
+      } catch (e) {
+        correctSteps = String(correctAns).split('\n').map(s => s.trim()).filter(Boolean);
+      }
+
+      if (isPowerExercise) {
+        let parsedStudent = [];
+        try { parsedStudent = JSON.parse(answer); if (!Array.isArray(parsedStudent)) parsedStudent = [answer]; } catch (e) { parsedStudent = [answer]; }
+        
+        const normalize = s => String(s).toLowerCase().replace(/\s+/g, ' ').trim()
+        let correctStepsCount = 0
+        
+        const feedbacks = correctSteps.map((cStep, idx) => {
+          const stepOk = normalize(parsedStudent[idx]) === normalize(cStep)
+          if (stepOk) correctStepsCount++
+          return stepOk ? 'correct' : 'incorrect'
+        })
+        
+        setBoxFeedbacks(feedbacks)
+        isCorrect = (correctStepsCount === correctSteps.length)
+        setFeedback(isCorrect ? 'correct' : 'incorrect')
+        xp = correctStepsCount * 10
+      } else {
+        isCorrect = checkAnswer(answer, correctAns, qType)
+        setFeedback(isCorrect ? 'correct' : 'incorrect')
+        xp = isCorrect ? 10 : 0
+      }
     }
 
     if (xp > 0) {
@@ -390,10 +498,10 @@ export default function SectionAttemptPage() {
     }
 
     const resp = {
-      question_id: currentQ.id,
-      question_snapshot: buildSnapshot(currentQ),
-      correct_answer: correctAns,
-      student_answer: answer.trim(),
+      question_id: isVirtual ? currentQ.dbQuestionId : currentQ.id,
+      question_snapshot: isVirtual ? (currentQ.questionText || 'Custom Question') : buildSnapshot(currentQ),
+      correct_answer: isVirtual ? correctAnsStr : (currentQ.answer_text ?? currentQ.answer ?? currentQ.computedAnswer ?? currentQ.correct_answer),
+      student_answer: isVirtual ? (currentQ.virtualType === 'image_only' ? '' : answer.trim()) : answer.trim(),
       is_correct: isCorrect,
       time_taken_seconds: parseFloat(timeTaken.toFixed(2)),
     }
@@ -413,7 +521,7 @@ export default function SectionAttemptPage() {
         setTimerRunning(false)
         submitSection(newResponses)
       }
-    }, 1500) // 1.5s delay to let them see step-by-step box colors!
+    }, 1500)
   }
 
   const submitSection = async (finalResponses) => {
@@ -541,9 +649,12 @@ export default function SectionAttemptPage() {
   if (!currentQ) return null
 
   const qType = getQuestionType(currentQ)
-  const isAddType = qType === 'add' || qType === 'visual'
-  const isMulDiv = qType === 'mul_x' || qType === 'mul_div' || qType === 'two_steps'
-  const isTeacher = qType === 'teacher'
+  const isVirtualCustom = currentQ?.virtualType === 'teacher_custom'
+  const isVirtualImageOnly = currentQ?.virtualType === 'image_only'
+  const isVirtual = isVirtualCustom || isVirtualImageOnly
+  const isAddType = (qType === 'add' || qType === 'visual') && !isVirtual
+  const isMulDiv = (qType === 'mul_x' || qType === 'mul_div' || qType === 'two_steps') && !isVirtual
+  const isTeacher = qType === 'teacher' && !isVirtual
 
   const addends = isAddType
     ? (Array.isArray(currentQ.addends) ? currentQ.addends : JSON.parse(currentQ.addends || '[]'))
@@ -661,6 +772,226 @@ export default function SectionAttemptPage() {
                 autoComplete="off"
               />
             </div>
+          </div>
+        )}
+
+        {/* Virtual Custom Card display */}
+        {isVirtualCustom && (
+          <div className="mul-card animate-pop" style={{
+            width: '100%',
+            maxWidth: 680,
+            flexDirection: 'column',
+            alignItems: 'stretch',
+            gap: '1.5rem',
+            fontFamily: 'var(--font-sans)',
+            fontSize: 'unset',
+            fontWeight: 'unset',
+            padding: '2rem',
+          }}>
+            {/* Question Header & Badge */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+              <span style={{ fontWeight: 600, fontSize: '1.25rem', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>
+                {currentQ.questionText}
+              </span>
+              {!(currentQ.questionType === 'checkbox' ? (Array.isArray(currentQ.correctAnswer) && currentQ.correctAnswer.length > 0) : (currentQ.correctAnswer && String(currentQ.correctAnswer).trim() !== '')) && (
+                <span className="badge badge-warning" style={{ fontSize: '0.75rem' }}>⚠️ To be checked by teacher</span>
+              )}
+            </div>
+
+            {/* Question Image */}
+            {currentQ.image && (
+              <div style={{ textAlign: 'center', margin: '0.5rem 0' }}>
+                <img src={currentQ.image} alt="Question" style={{ maxWidth: '100%', maxHeight: '300px', borderRadius: '8px', border: '1px solid var(--border)' }} />
+              </div>
+            )}
+
+            {/* Answers Inputs */}
+            {currentQ.questionType === 'short_answer' && (
+              isMultiLineRequired(student?.level, dayNum) ? (
+                <textarea
+                  rows={2}
+                  className={`form-input${feedback ? ` ${feedback}` : ''}`}
+                  placeholder="Your answer"
+                  value={answer}
+                  onChange={(e) => setAnswer(e.target.value)}
+                  disabled={!!feedback}
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    background: feedback === 'correct' ? 'var(--success-bg)' : feedback === 'incorrect' ? 'var(--error-bg)' : 'rgba(255,255,255,0.03)',
+                    border: feedback === 'correct' ? '1.5px solid var(--success)' : feedback === 'incorrect' ? '1.5px solid var(--error)' : '1.5px solid var(--border)',
+                    boxShadow: feedback === 'correct' ? '0 2px 0 #047857' : feedback === 'incorrect' ? '0 2px 0 #b91c1c' : 'unset',
+                    borderRadius: '8px',
+                    color: 'var(--text-primary)',
+                    resize: 'vertical',
+                    fontSize: '1rem',
+                    outline: 'none',
+                  }}
+                />
+              ) : (
+                <input
+                  type="text"
+                  className={`form-input${feedback ? ` ${feedback}` : ''}`}
+                  placeholder="Your answer"
+                  value={answer}
+                  onChange={(e) => setAnswer(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleNext()}
+                  disabled={!!feedback}
+                  autoFocus
+                  autoComplete="off"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    background: feedback === 'correct' ? 'var(--success-bg)' : feedback === 'incorrect' ? 'var(--error-bg)' : 'rgba(255,255,255,0.03)',
+                    border: feedback === 'correct' ? '1.5px solid var(--success)' : feedback === 'incorrect' ? '1.5px solid var(--error)' : '1.5px solid var(--border)',
+                    boxShadow: feedback === 'correct' ? '0 2px 0 #047857' : feedback === 'incorrect' ? '0 2px 0 #b91c1c' : 'unset',
+                    borderRadius: '8px',
+                    color: 'var(--text-primary)',
+                    fontSize: '1rem',
+                    outline: 'none',
+                  }}
+                />
+              )
+            )}
+
+            {currentQ.questionType === 'paragraph' && (
+              <textarea
+                rows={3}
+                className={`form-input${feedback ? ` ${feedback}` : ''}`}
+                placeholder="Your answer (paragraph)"
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                disabled={!!feedback}
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: feedback === 'correct' ? 'var(--success-bg)' : feedback === 'incorrect' ? 'var(--error-bg)' : 'rgba(255,255,255,0.03)',
+                  border: feedback === 'correct' ? '1.5px solid var(--success)' : feedback === 'incorrect' ? '1.5px solid var(--error)' : '1.5px solid var(--border)',
+                  boxShadow: feedback === 'correct' ? '0 2px 0 #047857' : feedback === 'incorrect' ? '0 2px 0 #b91c1c' : 'unset',
+                  borderRadius: '8px',
+                  color: 'var(--text-primary)',
+                  resize: 'vertical',
+                  fontSize: '1rem',
+                  outline: 'none',
+                }}
+              />
+            )}
+
+            {currentQ.questionType === 'multiple_choice' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {currentQ.options.map(opt => (
+                  <label key={opt.id} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    cursor: !!feedback ? 'default' : 'pointer',
+                    padding: '0.6rem 1rem',
+                    background: answer === opt.text ? 'rgba(255,122,0,0.12)' : 'rgba(255,255,255,0.02)',
+                    border: answer === opt.text ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
+                    borderRadius: '8px',
+                    transition: 'all 0.2s ease',
+                  }}>
+                    <input
+                      type="radio"
+                      name={currentQ.id}
+                      checked={answer === opt.text}
+                      disabled={!!feedback}
+                      onChange={() => setAnswer(opt.text)}
+                      style={{ accentColor: 'var(--primary)' }}
+                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <span style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>{opt.text}</span>
+                      {opt.image && (
+                        <img src={opt.image} alt={opt.text} style={{ maxHeight: '60px', borderRadius: '4px', border: '1px solid var(--border)' }} />
+                      )}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {currentQ.questionType === 'checkbox' && (() => {
+              let currentVal = []
+              try {
+                if (answer) {
+                  currentVal = JSON.parse(answer)
+                  if (!Array.isArray(currentVal)) currentVal = []
+                }
+              } catch (e) {}
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {currentQ.options.map(opt => {
+                    const isChecked = currentVal.includes(opt.text)
+                    return (
+                      <label key={opt.id} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        cursor: !!feedback ? 'default' : 'pointer',
+                        padding: '0.6rem 1rem',
+                        background: isChecked ? 'rgba(255,122,0,0.12)' : 'rgba(255,255,255,0.02)',
+                        border: isChecked ? '1.5px solid var(--primary)' : '1.5px solid var(--border)',
+                        borderRadius: '8px',
+                        transition: 'all 0.2s ease',
+                      }}>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          disabled={!!feedback}
+                          onChange={(e) => {
+                            let nextVal = [...currentVal]
+                            if (e.target.checked) {
+                              nextVal.push(opt.text)
+                            } else {
+                              nextVal = nextVal.filter(v => v !== opt.text)
+                            }
+                            setAnswer(JSON.stringify(nextVal))
+                          }}
+                          style={{ accentColor: 'var(--primary)' }}
+                        />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <span style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>{opt.text}</span>
+                          {opt.image && (
+                            <img src={opt.image} alt={opt.text} style={{ maxHeight: '60px', borderRadius: '4px', border: '1px solid var(--border)' }} />
+                          )}
+                        </div>
+                      </label>
+                    )
+                  })}
+                </div>
+              )
+            })()}
+          </div>
+        )}
+
+        {/* Virtual Image Only Card display */}
+        {isVirtualImageOnly && (
+          <div className="mul-card animate-pop" style={{
+            width: '100%',
+            maxWidth: 680,
+            flexDirection: 'column',
+            alignItems: 'stretch',
+            gap: '1.5rem',
+            fontFamily: 'var(--font-sans)',
+            fontSize: 'unset',
+            fontWeight: 'unset',
+            padding: '2rem',
+          }}>
+            {/* Question Image */}
+            {currentQ.image && (
+              <div style={{ textAlign: 'center' }}>
+                <img src={currentQ.image} alt="Block Image" style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px', border: '1px solid var(--border)' }} />
+              </div>
+            )}
+            
+            {currentQ.questionText && (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', fontStyle: 'italic', textAlign: 'center', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                {currentQ.questionText}
+              </p>
+            )}
           </div>
         )}
 
@@ -1025,7 +1356,16 @@ export default function SectionAttemptPage() {
           <button
             className="btn btn-primary btn-block btn-lg"
             onClick={handleNext}
-            disabled={!!feedback || !answer.trim()}
+            disabled={
+              !!feedback || 
+              (isVirtualCustom && currentQ.questionType === 'checkbox' 
+                ? (() => {
+                    let parsed = [];
+                    try { parsed = JSON.parse(answer); } catch(e) {}
+                    return !Array.isArray(parsed) || parsed.length === 0;
+                  })()
+                : (isVirtualImageOnly ? false : !answer.trim()))
+            }
           >
             {currentIndex === questions.length - 1 ? '✓ Finish Section' : 'Next →'}
           </button>
