@@ -18,7 +18,7 @@ const LEVEL_LABELS = {
   l7: 'Level 7',
   l8: 'Level 8',
   alumni: 'Alumni',
-  gm: 'GM Level'
+  gm: 'Grand Master (GM)'
 }
 const FIFTH_DAYS = Array.from({length: 20}, (_, i) => (i+1)*5)
 

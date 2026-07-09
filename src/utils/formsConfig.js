@@ -9,7 +9,7 @@ export const LEVELS = [
   { id: 'l7',     label: '7',     description: 'Level 7' },
   { id: 'l8',     label: '8',     description: 'Level 8' },
   { id: 'alumni', label: 'Alumni', description: 'Alumni Level' },
-  { id: 'gm',     label: 'GM Level', description: 'GM Level' },
+  { id: 'gm',     label: 'Grand Master (GM)', description: 'Grand Master (GM)' },
 ]
 
 const FoundationLevel1_FORMS = [
