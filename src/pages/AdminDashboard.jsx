@@ -946,6 +946,858 @@ function QuestionBuilderTab() {
   )
 }
 
+const convertLegacyToFormItems = (questionVal, answerVal) => {
+  let blocks = []
+  try {
+    blocks = typeof questionVal === 'string' ? JSON.parse(questionVal) : questionVal
+  } catch (e) {
+    return [{
+      id: `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type: 'question',
+      questionType: 'short_answer',
+      questionText: String(questionVal || ''),
+      correctAnswer: String(answerVal || ''),
+      image: '',
+      options: []
+    }]
+  }
+
+  if (!Array.isArray(blocks)) {
+    return [{
+      id: `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type: 'question',
+      questionType: 'short_answer',
+      questionText: String(questionVal || ''),
+      correctAnswer: String(answerVal || ''),
+      image: '',
+      options: []
+    }]
+  }
+
+  let answers = []
+  try {
+    answers = typeof answerVal === 'string' ? JSON.parse(answerVal) : answerVal
+    if (!Array.isArray(answers)) answers = [answerVal]
+  } catch (e) {
+    answers = [answerVal]
+  }
+
+  const items = []
+  let ansIdx = 0
+
+  blocks.forEach((block, index) => {
+    if (block.type === 'text') {
+      const nextBlock = blocks[index + 1]
+      const hasBox = nextBlock && (nextBlock.type === 'box' || nextBlock.type === 'paragraph' || nextBlock.type === 'step')
+      
+      items.push({
+        id: `item_${index}_${Math.random().toString(36).substr(2, 9)}`,
+        type: 'question',
+        questionType: hasBox && nextBlock.type === 'paragraph' ? 'paragraph' : 'short_answer',
+        questionText: block.content || '',
+        correctAnswer: hasBox ? String(answers[ansIdx++] || '') : '',
+        image: '',
+        options: []
+      })
+    } else if (block.type === 'image') {
+      items.push({
+        id: `item_${index}_${Math.random().toString(36).substr(2, 9)}`,
+        type: 'image_only',
+        image: block.content || '',
+        description: 'Image description'
+      })
+    } else if (block.type === 'instruction' || block.type === 'example') {
+      items.push({
+        id: `item_${index}_${Math.random().toString(36).substr(2, 9)}`,
+        type: 'section_header',
+        title: block.type === 'example' ? '💡 Example' : 'Instruction',
+        description: block.content || ''
+      })
+    } else if (block.type === 'options') {
+      const options = (block.content || '').split(',').map((o, oi) => ({ id: `opt_${oi}`, text: o.trim(), image: '' }))
+      items.push({
+        id: `item_${index}_${Math.random().toString(36).substr(2, 9)}`,
+        type: 'question',
+        questionType: 'multiple_choice',
+        questionText: 'Select an option:',
+        options,
+        correctAnswer: String(answers[ansIdx++] || ''),
+        image: ''
+      })
+    } else if (block.type === 'box' || block.type === 'paragraph' || block.type === 'step') {
+      const prevBlock = blocks[index - 1]
+      const isConsumed = prevBlock && prevBlock.type === 'text'
+      if (!isConsumed) {
+        items.push({
+          id: `item_${index}_${Math.random().toString(36).substr(2, 9)}`,
+          type: 'question',
+          questionType: block.type === 'paragraph' ? 'paragraph' : 'short_answer',
+          questionText: 'Answer:',
+          correctAnswer: String(answers[ansIdx++] || ''),
+          image: '',
+          options: []
+        })
+      }
+    }
+  })
+
+  return items.length > 0 ? items : [{
+    id: `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    type: 'question',
+    questionType: 'short_answer',
+    questionText: '',
+    correctAnswer: '',
+    image: '',
+    options: []
+  }]
+}
+
+function CustomFormsTab() {
+  const [qLevel, setQLevel] = useState('l1')
+  const [qDay, setQDay] = useState('1')
+  const [qSection, setQSection] = useState('abacus')
+  const [formTitle, setFormTitle] = useState('Abacus Daily Challenge')
+  const [formDescription, setFormDescription] = useState('Solve all questions step by step.')
+  const [formItems, setFormItems] = useState([])
+  const [qFormatExample, setQFormatExample] = useState('')
+  const [editQId, setEditQId] = useState(null)
+  const [qSaving, setQSaving] = useState(false)
+  const [savedQuestions, setSavedQuestions] = useState([])
+  const [loadingQ, setLoadingQ] = useState(false)
+
+  const loadQuestions = async () => {
+    if (!qLevel) return
+    setLoadingQ(true)
+    try {
+      const params = new URLSearchParams({ level: qLevel })
+      if (qDay) params.append('day_number', qDay)
+      const res = await adminApi.get(`/admin/teacher-questions?${params}`)
+      setSavedQuestions(res.data)
+    } catch {
+      toast.error('Could not fetch questions.')
+    } finally {
+      setLoadingQ(false)
+    }
+  }
+
+  useEffect(() => {
+    loadQuestions()
+  }, [qLevel, qDay])
+
+  useEffect(() => {
+    if (!qLevel || !qDay || !qSection) return
+    const match = savedQuestions.find(q => 
+      q.level === qLevel && 
+      q.day_number === parseInt(qDay, 10) && 
+      q.section === qSection
+    )
+    if (match) {
+      setEditQId(match.id)
+      setQFormatExample(match.format_example || '')
+      try {
+        const parsed = JSON.parse(match.question)
+        if (parsed && typeof parsed === 'object' && parsed.items) {
+          setFormTitle(parsed.title || 'Abacus Daily Challenge')
+          setFormDescription(parsed.description || '')
+          setFormItems(parsed.items || [])
+        } else {
+          const convertedItems = convertLegacyToFormItems(parsed || match.question, match.answer)
+          setFormTitle(`Daily Challenge - Day ${qDay}`)
+          setFormDescription('')
+          setFormItems(convertedItems)
+        }
+      } catch (e) {
+        setFormTitle(`Daily Challenge - Day ${qDay}`)
+        setFormDescription('')
+        setFormItems([{
+          id: `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          type: 'question',
+          questionType: 'short_answer',
+          questionText: match.question || '',
+          correctAnswer: match.answer || '',
+          image: '',
+          options: []
+        }])
+      }
+    } else {
+      setEditQId(null)
+      setQFormatExample('')
+      setFormTitle(`Daily Challenge - Day ${qDay}`)
+      setFormDescription('')
+      setFormItems([{
+        id: `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        type: 'question',
+        questionType: 'short_answer',
+        questionText: '',
+        correctAnswer: '',
+        image: '',
+        options: []
+      }])
+    }
+  }, [qLevel, qDay, qSection, savedQuestions])
+
+  const addFormItem = (type, qType = 'short_answer') => {
+    const newItem = {
+      id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type,
+    }
+    if (type === 'question') {
+      newItem.questionType = qType
+      newItem.questionText = ''
+      newItem.correctAnswer = ''
+      newItem.image = ''
+      newItem.options = qType === 'multiple_choice' || qType === 'checkbox' 
+        ? [{ id: `opt_${Date.now()}_0`, text: 'Option 1', image: '' }] 
+        : []
+    } else if (type === 'image_only') {
+      newItem.image = ''
+      newItem.description = ''
+    } else if (type === 'section_header') {
+      newItem.title = 'New Section'
+      newItem.description = ''
+    }
+    setFormItems([...formItems, newItem])
+  }
+
+  const moveItem = (index, direction) => {
+    const newItems = [...formItems]
+    if (direction === 'up' && index > 0) {
+      [newItems[index - 1], newItems[index]] = [newItems[index], newItems[index - 1]]
+    } else if (direction === 'down' && index < newItems.length - 1) {
+      [newItems[index + 1], newItems[index]] = [newItems[index], newItems[index + 1]]
+    }
+    setFormItems(newItems)
+  }
+
+  const deleteItem = (index) => {
+    setFormItems(formItems.filter((_, i) => i !== index))
+  }
+
+  const duplicateItem = (index) => {
+    const itemToCopy = formItems[index]
+    const copied = JSON.parse(JSON.stringify(itemToCopy))
+    copied.id = `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    
+    const newItems = [...formItems]
+    newItems.splice(index + 1, 0, copied)
+    setFormItems(newItems)
+  }
+
+  const getTeacherSectionsForLevel = (level) => {
+    if (level === 'l1') return [
+      { value: 'abacus', label: '🧮 Abacus' },
+      { value: 'teacher_input', label: '👨‍🏫 Teacher Input' }
+    ]
+    if (level === 'l4') return [
+      { value: 'form_the_question', label: '✏ Form The Question' }
+    ]
+    if (level === 'l5') return [
+      { value: 'cracking', label: '✏ Cracking' }
+    ]
+    if (level === 'l6') return [
+      { value: 'bodmas', label: '🧮 Bodmas' }
+    ]
+    if (level === 'l8') return [
+      { value: 'cracking', label: '✏ Cracking' }
+    ]
+    return []
+  }
+
+  return (
+    <div className="animate-slide-up" style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '4rem' }}>
+      <h1 style={{ fontSize: '1.6rem', marginBottom: '1.5rem' }}>Google Forms Clone Creator</h1>
+
+      {/* Filter row */}
+      <div className="card" style={{ marginBottom: '1.5rem', padding: '1.25rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label">Level</label>
+          <select value={qLevel} onChange={e => setQLevel(e.target.value)} style={{ width: 150 }}>
+            {LEVELS.map(l => (
+              <option key={l} value={l}>{LEVEL_LABELS[l]}</option>
+            ))}
+          </select>
+        </div>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label">Day Number</label>
+          <input type="number" min="1" max="100" value={qDay} onChange={e => setQDay(e.target.value)} placeholder="e.g. 5" style={{ width: 100 }} />
+        </div>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label">Section</label>
+          <select value={qSection} onChange={e => setQSection(e.target.value)} style={{ width: 220 }}>
+            {getTeacherSectionsForLevel(qLevel).map(sec => (
+              <option key={sec.value} value={sec.value}>{sec.label}</option>
+            ))}
+            {getTeacherSectionsForLevel(qLevel).length === 0 && (
+              <option value="">No custom sections (Auto-generated)</option>
+            )}
+          </select>
+        </div>
+      </div>
+
+      {/* Designer UI */}
+      {/* Form title/header card */}
+      <div className="card animate-fade-in" style={{
+        padding: '1.5rem',
+        marginBottom: '1.5rem',
+        borderTop: '10px solid #673ab7',
+        borderRadius: '8px',
+        background: 'var(--bg-card)',
+        boxShadow: 'var(--shadow-md)',
+      }}>
+        <div className="form-group" style={{ marginBottom: '1rem' }}>
+          <input
+            type="text"
+            placeholder="Form Title"
+            value={formTitle}
+            onChange={e => setFormTitle(e.target.value)}
+            style={{
+              width: '100%',
+              fontSize: '2rem',
+              fontWeight: 'bold',
+              border: 'none',
+              borderBottom: '1px solid var(--border)',
+              padding: '0.5rem 0',
+              background: 'transparent',
+              color: 'var(--text-primary)',
+              outline: 'none',
+            }}
+          />
+        </div>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <textarea
+            rows={2}
+            placeholder="Form Description"
+            value={formDescription}
+            onChange={e => setFormDescription(e.target.value)}
+            style={{
+              width: '100%',
+              fontSize: '1rem',
+              border: 'none',
+              borderBottom: '1px solid var(--border)',
+              padding: '0.5rem 0',
+              background: 'transparent',
+              color: 'var(--text-secondary)',
+              outline: 'none',
+              resize: 'none',
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Format instruction (legacy support) */}
+      <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem', background: 'var(--bg-card)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
+          <label className="form-label" style={{ marginBottom: '0.2rem', display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Format Example / Extra Instructions (Optional)</label>
+          <input
+            type="text"
+            placeholder="e.g. 'Enter integer' or instructions"
+            value={qFormatExample}
+            onChange={e => setQFormatExample(e.target.value)}
+            style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)' }}
+          />
+        </div>
+      </div>
+
+      {/* Items List */}
+      {formItems.map((item, idx) => (
+        <div key={item.id} className="card animate-fade-in" style={{
+          padding: '1.5rem',
+          marginBottom: '1.5rem',
+          borderRadius: '8px',
+          background: 'var(--bg-card)',
+          boxShadow: 'var(--shadow-sm)',
+          borderLeft: '5px solid transparent',
+          position: 'relative',
+        }}
+        onMouseEnter={e => e.currentTarget.style.borderLeft = '5px solid #673ab7'}
+        onMouseLeave={e => e.currentTarget.style.borderLeft = '5px solid transparent'}
+        >
+          
+          {/* Reorder and Delete controls header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+              <button type="button" className="btn btn-ghost btn-sm" disabled={idx === 0} onClick={() => moveItem(idx, 'up')}>▲ Up</button>
+              <button type="button" className="btn btn-ghost btn-sm" disabled={idx === formItems.length - 1} onClick={() => moveItem(idx, 'down')}>▼ Down</button>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>Item {idx + 1}</span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <select
+                value={item.type}
+                onChange={e => {
+                  const newItems = [...formItems]
+                  const newType = e.target.value
+                  newItems[idx].type = newType
+                  if (newType === 'question') {
+                    newItems[idx].questionType = 'short_answer'
+                    newItems[idx].questionText = newItems[idx].questionText || ''
+                    newItems[idx].correctAnswer = ''
+                    newItems[idx].options = []
+                  } else if (newType === 'image_only') {
+                    newItems[idx].description = ''
+                  } else if (newType === 'section_header') {
+                    newItems[idx].title = 'Section Title'
+                    newItems[idx].description = ''
+                  }
+                  setFormItems(newItems)
+                }}
+                style={{ padding: '0.3rem 0.5rem', fontSize: '0.85rem', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)' }}
+              >
+                <option value="question">❓ Question Field</option>
+                <option value="image_only">🖼️ Image Block Only</option>
+                <option value="section_header">🔖 Section Title/Break</option>
+              </select>
+
+              <button type="button" className="btn btn-ghost btn-sm" style={{ color: 'var(--text-muted)' }} onClick={() => duplicateItem(idx)}>📋 Duplicate</button>
+              <button type="button" className="btn btn-ghost btn-sm" style={{ color: '#ef4444' }} onClick={() => deleteItem(idx)}>🗑️ Delete</button>
+            </div>
+          </div>
+
+          {/* Render based on item type */}
+          {item.type === 'section_header' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <input
+                type="text"
+                placeholder="Section Title (e.g. Section 1: Mentals)"
+                value={item.title || ''}
+                onChange={e => {
+                  const newItems = [...formItems]
+                  newItems[idx].title = e.target.value
+                  setFormItems(newItems)
+                }}
+                style={{ width: '100%', fontSize: '1.25rem', fontWeight: 600, padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '4px', background: 'var(--bg-elevated)', color: 'var(--text-primary)' }}
+              />
+              <textarea
+                rows={2}
+                placeholder="Section Description / Instructions (Optional)"
+                value={item.description || ''}
+                onChange={e => {
+                  const newItems = [...formItems]
+                  newItems[idx].description = e.target.value
+                  setFormItems(newItems)
+                }}
+                style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '4px', background: 'var(--bg-elevated)', color: 'var(--text-primary)', resize: 'vertical' }}
+              />
+            </div>
+          )}
+
+          {item.type === 'image_only' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {/* Image upload area */}
+              <div 
+                onPaste={e => {
+                  const itemsList = e.clipboardData.items;
+                  for (let i = 0; i < itemsList.length; i++) {
+                    if (itemsList[i].type.indexOf("image") !== -1) {
+                      const blob = itemsList[i].getAsFile();
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        const newItems = [...formItems]
+                        newItems[idx].image = reader.result
+                        setFormItems(newItems)
+                      };
+                      reader.readAsDataURL(blob);
+                    }
+                  }
+                }}
+                style={{
+                  border: '2px dashed var(--border)',
+                  borderRadius: '6px',
+                  padding: '1.5rem',
+                  textAlign: 'center',
+                  background: 'rgba(255, 255, 255, 0.01)',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer'
+                }}
+              >
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={e => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        const newItems = [...formItems]
+                        newItems[idx].image = reader.result
+                        setFormItems(newItems)
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  style={{ display: 'block', margin: '0 auto 0.5rem' }}
+                />
+                Or paste image here (Ctrl+V)
+              </div>
+              
+              {item.image && (
+                <div style={{ marginTop: '0.5rem', position: 'relative', textAlign: 'center' }}>
+                  <img 
+                    src={item.image} 
+                    alt="Preview" 
+                    style={{ maxWidth: '100%', maxHeight: '250px', borderRadius: '4px', border: '1px solid var(--border)' }} 
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    style={{ position: 'absolute', top: 5, right: 5, background: 'rgba(0,0,0,0.6)', color: '#fff', borderRadius: '50%', width: 24, height: 24, padding: 0 }}
+                    onClick={() => {
+                      const newItems = [...formItems]
+                      newItems[idx].image = ''
+                      setFormItems(newItems)
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+              
+              <input
+                type="text"
+                placeholder="Image Description / Caption (e.g. Figure A)"
+                value={item.description || ''}
+                onChange={e => {
+                  const newItems = [...formItems]
+                  newItems[idx].description = e.target.value
+                  setFormItems(newItems)
+                }}
+                style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '4px', background: 'var(--bg-elevated)', color: 'var(--text-primary)' }}
+              />
+            </div>
+          )}
+
+          {item.type === 'question' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              
+              {/* Question input + Question Type Selector */}
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <input
+                  type="text"
+                  placeholder="Question Title (e.g. What is 2 + 2?)"
+                  value={item.questionText || ''}
+                  onChange={e => {
+                    const newItems = [...formItems]
+                    newItems[idx].questionText = e.target.value
+                    setFormItems(newItems)
+                  }}
+                  style={{ flex: 1, minWidth: '200px', fontSize: '1.1rem', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '4px', background: 'var(--bg-elevated)', color: 'var(--text-primary)' }}
+                />
+                <select
+                  value={item.questionType}
+                  onChange={e => {
+                    const newItems = [...formItems]
+                    const newQType = e.target.value
+                    newItems[idx].questionType = newQType
+                    newItems[idx].correctAnswer = newQType === 'checkbox' ? [] : ''
+                    newItems[idx].options = newQType === 'multiple_choice' || newQType === 'checkbox'
+                      ? [{ id: `opt_${Date.now()}_0`, text: 'Option 1', image: '' }]
+                      : []
+                    setFormItems(newItems)
+                  }}
+                  style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)' }}
+                >
+                  <option value="short_answer">✏️ Short Answer</option>
+                  <option value="paragraph">📑 Paragraph Text</option>
+                  <option value="multiple_choice">🔘 Multiple Choice</option>
+                  <option value="checkbox">☑️ Checkboxes</option>
+                </select>
+              </div>
+
+              {/* Question image attachment */}
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  id={`q_img_file_${item.id}`}
+                  style={{ display: 'none' }}
+                  onChange={e => {
+                    const file = e.target.files[0]
+                    if (file) {
+                      const reader = new FileReader()
+                      reader.onloadend = () => {
+                        const newItems = [...formItems]
+                        newItems[idx].image = reader.result
+                        setFormItems(newItems)
+                      }
+                      reader.readAsDataURL(file)
+                    }
+                  }}
+                />
+                <label
+                  htmlFor={`q_img_file_${item.id}`}
+                  style={{ cursor: 'pointer', padding: '4px 10px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', borderRadius: '4px', fontSize: '0.85rem' }}
+                >
+                  🖼️ Attach Image to Question
+                </label>
+                {item.image && (
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <img src={item.image} alt="Question" style={{ maxHeight: '40px', borderRadius: '4px' }} />
+                    <button
+                      type="button"
+                      style={{ position: 'absolute', top: -5, right: -5, background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: 16, height: 16, fontSize: '9px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      onClick={() => {
+                        const newItems = [...formItems]
+                        newItems[idx].image = ''
+                        setFormItems(newItems)
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Question Choices or Answer Fields */}
+              {(item.questionType === 'multiple_choice' || item.questionType === 'checkbox') ? (
+                <div style={{ padding: '0.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '6px' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem', display: 'block' }}>
+                    Choices (Select correct option(s) or leave all unchecked for manual review):
+                  </span>
+                  
+                  {item.options.map((opt, oIdx) => (
+                    <div key={opt.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                      {item.questionType === 'multiple_choice' ? (
+                        <input
+                          type="radio"
+                          name={`correct_${item.id}`}
+                          checked={item.correctAnswer === opt.id}
+                          onChange={() => {
+                            const newItems = [...formItems]
+                            newItems[idx].correctAnswer = opt.id
+                            setFormItems(newItems)
+                          }}
+                        />
+                      ) : (
+                        <input
+                          type="checkbox"
+                          checked={Array.isArray(item.correctAnswer) && item.correctAnswer.includes(opt.id)}
+                          onChange={(e) => {
+                            const newItems = [...formItems]
+                            let curr = Array.isArray(item.correctAnswer) ? [...item.correctAnswer] : []
+                            if (e.target.checked) {
+                              curr.push(opt.id)
+                            } else {
+                              curr = curr.filter(id => id !== opt.id)
+                            }
+                            newItems[idx].correctAnswer = curr
+                            setFormItems(newItems)
+                          }}
+                        />
+                      )}
+                      
+                      <input
+                        type="text"
+                        placeholder={`Option ${oIdx + 1}`}
+                        value={opt.text}
+                        onChange={e => {
+                          const newItems = [...formItems]
+                          newItems[idx].options[oIdx].text = e.target.value
+                          setFormItems(newItems)
+                        }}
+                        style={{ flex: 1, minWidth: '150px', padding: '0.4rem', border: '1px solid var(--border)', borderRadius: '4px', background: 'var(--bg-elevated)', color: 'var(--text-primary)' }}
+                      />
+                      
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id={`opt_file_${item.id}_${opt.id}`}
+                        style={{ display: 'none' }}
+                        onChange={e => {
+                          const file = e.target.files[0]
+                          if (file) {
+                            const reader = new FileReader()
+                            reader.onloadend = () => {
+                              const newItems = [...formItems]
+                              newItems[idx].options[oIdx].image = reader.result
+                              setFormItems(newItems)
+                            }
+                            reader.readAsDataURL(file)
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor={`opt_file_${item.id}_${opt.id}`}
+                        style={{ cursor: 'pointer', padding: '4px 8px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', borderRadius: '4px', fontSize: '0.8rem' }}
+                      >
+                        🖼️ Add Image
+                      </label>
+
+                      {opt.image && (
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <img src={opt.image} alt="Option" style={{ maxHeight: '30px', maxWidth: '50px', borderRadius: '4px' }} />
+                          <button
+                            type="button"
+                            style={{ position: 'absolute', top: -5, right: -5, background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: 14, height: 14, fontSize: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            onClick={() => {
+                              const newItems = [...formItems]
+                              newItems[idx].options[oIdx].image = ''
+                              setFormItems(newItems)
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        style={{ color: '#ef4444', padding: '0.2rem' }}
+                        onClick={() => {
+                          const newItems = [...formItems]
+                          newItems[idx].options = newItems[idx].options.filter((_, oi) => oi !== oIdx)
+                          setFormItems(newItems)
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    style={{ color: 'var(--primary-light)', marginTop: '0.25rem' }}
+                    onClick={() => {
+                      const newItems = [...formItems]
+                      newItems[idx].options.push({
+                        id: `opt_${Date.now()}_${item.options.length}`,
+                        text: `Option ${item.options.length + 1}`,
+                        image: ''
+                      })
+                      setFormItems(newItems)
+                    }}
+                  >
+                    ➕ Add Choice Option
+                  </button>
+                </div>
+              ) : (
+                <div style={{ padding: '0.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '6px' }}>
+                  <label className="form-label" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    Correct Answer (Leave blank for manual grading by teacher):
+                  </label>
+                  {item.questionType === 'paragraph' ? (
+                    <textarea
+                      rows={2}
+                      placeholder="Correct answer text..."
+                      value={item.correctAnswer || ''}
+                      onChange={e => {
+                        const newItems = [...formItems]
+                        newItems[idx].correctAnswer = e.target.value
+                        setFormItems(newItems)
+                      }}
+                      style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', resize: 'vertical' }}
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      placeholder="Correct answer value..."
+                      value={item.correctAnswer || ''}
+                      onChange={e => {
+                        const newItems = [...formItems]
+                        newItems[idx].correctAnswer = e.target.value
+                        setFormItems(newItems)
+                      }}
+                      style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)' }}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+
+      {/* Creator floating/bottom menu card */}
+      <div className="card" style={{
+        padding: '1.25rem',
+        marginBottom: '2rem',
+        borderRadius: '8px',
+        background: 'var(--bg-card)',
+        border: '1px solid rgba(103, 58, 183, 0.3)',
+        display: 'flex',
+        gap: '0.75rem',
+        justifyContent: 'center',
+        flexWrap: 'wrap'
+      }}>
+        <button type="button" className="btn btn-primary btn-sm" style={{ background: '#673ab7' }} onClick={() => addFormItem('question', 'short_answer')}>➕ Add Text Question</button>
+        <button type="button" className="btn btn-primary btn-sm" style={{ background: '#512da8' }} onClick={() => addFormItem('question', 'multiple_choice')}>➕ Add Choice Question</button>
+        <button type="button" className="btn btn-primary btn-sm" style={{ background: '#00b4d8' }} onClick={() => addFormItem('image_only')}>➕ Add Image Block</button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => addFormItem('section_header')}>🔖 Add Section Break</button>
+      </div>
+
+      {/* Action Save button */}
+      <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginBottom: '4rem' }}>
+        {editQId && (
+          <button type="button" className="btn btn-ghost" onClick={() => {
+            setEditQId(null)
+            setQFormatExample('')
+            setFormTitle(`Daily Challenge - Day ${qDay}`)
+            setFormDescription('')
+            setFormItems([])
+          }}>Clear / Reset</button>
+        )}
+        
+        <button
+          type="button"
+          className="btn btn-admin"
+          style={{ minWidth: '150px', background: '#673ab7', borderColor: '#512da8', color: '#fff' }}
+          disabled={qSaving}
+          onClick={(e) => {
+            e.preventDefault()
+            if (!qLevel || !qDay || !qSection) {
+              return toast.error('Please select level, day and section first.')
+            }
+
+            const formPayload = {
+              title: formTitle,
+              description: formDescription,
+              items: formItems
+            }
+
+            const questionStr = JSON.stringify(formPayload)
+
+            const answersList = []
+            formItems.forEach(item => {
+              if (item.type === 'question') {
+                if (item.questionType === 'checkbox') {
+                  answersList.push(JSON.stringify(item.correctAnswer || []))
+                } else {
+                  answersList.push(String(item.correctAnswer || ''))
+                }
+              }
+            })
+
+            const answerStr = JSON.stringify(answersList)
+
+            setQSaving(true)
+            adminApi.post('/admin/teacher-questions', {
+              id: editQId,
+              level: qLevel,
+              day_number: parseInt(qDay, 10),
+              section: qSection,
+              question: questionStr,
+              answer: answerStr,
+              format_example: qFormatExample
+            })
+              .then((res) => {
+                toast.success('Form saved successfully!')
+                if (res.data && res.data.id) {
+                  setEditQId(res.data.id)
+                }
+                loadQuestions()
+              })
+              .catch(() => toast.error('Failed to save form.'))
+              .finally(() => setQSaving(false))
+          }}
+        >
+          {qSaving ? <><div className="spinner spinner-sm" /> Saving...</> : '💾 Save Google Form'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 /* ──────────────────────────────────────────────────────────────────────────────
    PERFORMANCE TAB
 ────────────────────────────────────────────────────────────────────────────── */
@@ -1157,6 +2009,7 @@ export default function AdminDashboard() {
     { id: 'answers',   icon: '🎯', label: 'Student Answers' },
     { id: 'teachers',  icon: '👨‍🏫', label: 'Teachers' },
     { id: 'builder',   icon: '📝', label: 'Question Builder' },
+    { id: 'forms',     icon: '🌟', label: 'Google Forms' },
     { id: 'qbank',     icon: '📚', label: 'Question Bank (Legacy)' },
     { id: 'perf',      icon: '📈', label: 'Performance' },
     { id: 'actlog',    icon: '📝', label: 'Teacher Edits' },
@@ -1191,6 +2044,7 @@ export default function AdminDashboard() {
         { tab === 'answers'   && <StudentAnswersTab apiInstance={adminApi} isTeacherPortal={false} /> }
         { tab === 'teachers'  && <TeachersTab /> }
         { tab === 'builder'   && <QuestionBuilderTab /> }
+        { tab === 'forms'     && <CustomFormsTab /> }
         { tab === 'qbank'     && <QuestionBankTab /> }
         { tab === 'perf'      && <PerformanceTab /> }
         { tab === 'actlog'    && <ActivityLogTab /> }

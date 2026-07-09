@@ -186,27 +186,32 @@ export default function PerformanceReportPage() {
                 {SECTION_LABELS[sec] || sec}
               </h3>
               {secResponses.map((r, i) => (
-                <div key={i} className={`review-item review-item--${r.is_correct ? 'correct' : 'incorrect'}`}>
+                <div key={i} className={`review-item review-item--${r.is_correct === true ? 'correct' : r.is_correct === false ? 'incorrect' : 'pending'}`} style={r.is_correct === null ? { borderLeft: '4px solid var(--warning)', background: 'rgba(245,200,66,0.06)' } : {}}>
                   <div style={{
                     minWidth: 32, height: 32,
                     borderRadius: '50%',
-                    background: r.is_correct ? 'var(--success-bg)' : 'var(--error-bg)',
-                    border: `2px solid ${r.is_correct ? 'var(--success)' : 'var(--error)'}`,
+                    background: r.is_correct === true ? 'var(--success-bg)' : r.is_correct === false ? 'var(--error-bg)' : 'rgba(245,200,66,0.15)',
+                    border: `2px solid ${r.is_correct === true ? 'var(--success)' : r.is_correct === false ? 'var(--error)' : 'var(--warning)'}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: r.is_correct ? 'var(--success)' : 'var(--error)',
+                    color: r.is_correct === true ? 'var(--success)' : r.is_correct === false ? 'var(--error)' : 'var(--warning)',
                     fontWeight: 700, fontSize: '0.9rem',
                   }}>
-                    {r.is_correct ? '✓' : '✗'}
+                    {r.is_correct === true ? '✓' : r.is_correct === false ? '✗' : '⏳'}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>
                       {r.question_snapshot}
                     </div>
                     <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', fontSize: '0.85rem' }}>
-                      <span style={{ color: r.is_correct ? 'var(--success)' : 'var(--error)' }}>
+                      <span style={{ color: r.is_correct === true ? 'var(--success)' : r.is_correct === false ? 'var(--error)' : 'var(--warning)' }}>
                         Your answer: <strong>{formatDisplayAnswer(r.student_answer) || '(no answer)'}</strong>
                       </span>
-                      {!r.is_correct && (
+                      {r.is_correct === null && (
+                        <span style={{ color: 'var(--warning)' }}>
+                          ⏳ <em>Pending review by teacher</em>
+                        </span>
+                      )}
+                      {r.is_correct === false && (
                         <span style={{ color: 'var(--success)' }}>
                           Correct: <strong>{formatDisplayAnswer(r.correct_answer)}</strong>
                         </span>

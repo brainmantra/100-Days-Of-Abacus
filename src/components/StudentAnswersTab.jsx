@@ -83,6 +83,17 @@ export default function StudentAnswersTab({ apiInstance, isTeacherPortal = false
     setLoading(false)
   }, [fetchResponses])
 
+  const handleGrade = async (responseId, level, isCorrect) => {
+    try {
+      const path = isTeacherPortal ? `/teachers/responses/${responseId}/grade` : `/admin/responses/${responseId}/grade`
+      await apiInstance.post(path, { is_correct: isCorrect, level })
+      toast.success('Response graded successfully!')
+      loadData()
+    } catch (e) {
+      toast.error('Failed to grade response.')
+    }
+  }
+
   useEffect(() => {
     loadData()
   }, [loadData])
@@ -309,16 +320,36 @@ export default function StudentAnswersTab({ apiInstance, isTeacherPortal = false
                     <td><span className="badge badge-muted">Day {r.day_number}</span></td>
                     <td style={{ fontSize: '0.85rem' }}>{SECTION_LABELS[r.section_name] || r.section_name}</td>
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>{r.question_snapshot}</td>
-                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: r.is_correct ? 'var(--success)' : 'var(--error)' }}>
+                    <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: r.is_correct === true ? 'var(--success)' : r.is_correct === false ? 'var(--error)' : 'var(--warning)' }}>
                       {renderAnswerString(r.student_answer)}
                     </td>
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--success)' }}>
                       {renderAnswerString(r.correct_answer)}
                     </td>
                     <td>
-                      <span className={`badge ${r.is_correct ? 'badge-success' : 'badge-error'}`}>
-                        {r.is_correct ? 'Correct' : 'Wrong'}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', alignItems: 'center' }}>
+                        <span className={`badge ${r.is_correct === true ? 'badge-success' : r.is_correct === false ? 'badge-error' : 'badge-warning'}`}>
+                          {r.is_correct === true ? 'Correct' : r.is_correct === false ? 'Wrong' : 'Pending Review'}
+                        </span>
+                        {r.is_correct === null && (
+                          <div style={{ display: 'flex', gap: '0.3rem', marginTop: '0.2rem' }}>
+                            <button
+                              className="btn btn-sm"
+                              style={{ padding: '2px 8px', background: 'var(--success-bg)', color: 'var(--success)', border: '1px solid var(--success)', fontSize: '0.75rem', borderRadius: '4px', cursor: 'pointer' }}
+                              onClick={() => handleGrade(r.id, r.level, true)}
+                            >
+                              ✓ Correct
+                            </button>
+                            <button
+                              className="btn btn-sm"
+                              style={{ padding: '2px 8px', background: 'var(--error-bg)', color: 'var(--error)', border: '1px solid var(--error)', fontSize: '0.75rem', borderRadius: '4px', cursor: 'pointer' }}
+                              onClick={() => handleGrade(r.id, r.level, false)}
+                            >
+                              ✕ Wrong
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>{r.time_taken_seconds}s</td>
                     <td style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>

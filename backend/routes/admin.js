@@ -506,6 +506,30 @@ router.put('/teacher-questions/:id', requireAdmin, async (req, res) => {
   }
 })
 
+// ── POST /api/admin/teacher-questions ─────────────────────────────────────────
+router.post('/teacher-questions', requireAdmin, async (req, res) => {
+  try {
+    const { level, day_number, section = 'teacher_day', question, answer, format_example } = req.body
+    if (!question || !answer) {
+      return res.status(400).json({ message: 'Question and answer required.' })
+    }
+
+    const { rows } = await pool.query(
+      `INSERT INTO teacher_questions (level, day_number, section, question, answer, format_example, submitted_by)
+       VALUES ($1, $2, $3, $4, $5, $6, NULL)
+       ON CONFLICT (level, day_number, section)
+       DO UPDATE SET question = EXCLUDED.question, answer = EXCLUDED.answer,
+                     format_example = EXCLUDED.format_example, updated_at = NOW()
+       RETURNING *`,
+      [level, day_number, section, question, answer, format_example || null]
+    )
+    res.json(rows[0])
+  } catch (err) {
+    console.error('[admin/teacher-questions POST]', err)
+    res.status(500).json({ message: 'Server error.' })
+  }
+})
+
 // ── GET /api/admin/performance ────────────────────────────────────────────────
 router.get('/performance', requireAdmin, async (req, res) => {
   try {
@@ -780,4 +804,115 @@ router.get('/responses', requireAdmin, async (req, res) => {
   }
 });
 
+// ── POST /api/admin/responses/:id/grade ─────────────────────────────────────
+router.post('/responses/:id/grade', requireAdmin, async (req, res) => {
+  try {
+    const responseId = parseInt(req.params.id, 10)
+    const { is_correct, level } = req.body
+
+    const tableName = level === 'alumni' ? 'responses_alumni' : `responses_l${level.replace('l', '')}`
+
+    // 1. Fetch current response
+    const { rows: respRows } = await pool.query(
+      `SELECT * FROM ${tableName} WHERE id = $1`,
+      [responseId]
+    )
+    if (!respRows.length) {
+      return res.status(404).json({ message: 'Response not found.' })
+    }
+    const resp = respRows[0]
+
+    // Determine the XP change:
+    const wasCorrect = resp.is_correct === true
+    const isNowCorrect = is_correct === true
+    const newXpEarned = isNowCorrect ? 10 : 0
+    const xpDifference = newXpEarned - (resp.xp_earned || 0)
+
+    // 2. Update response row
+    await pool.query(
+      `UPDATE ${tableName} 
+       SET is_correct = $1, xp_earned = $2 
+       WHERE id = $3`,
+      [is_correct, newXpEarned, responseId]
+    )
+
+    // 3. Recalculate day record and student total
+    const { student_id, day_number } = resp
+
+    // Recalculate day record's section_data, marks, accuracy, etc.
+    const { rows: allRespRows } = await pool.query(
+      `SELECT * FROM ${tableName} WHERE student_id = $1 AND day_number = $2`,
+      [student_id, day_number]
+    )
+
+    // Group all responses of this day by section
+    const bySection = {}
+    allRespRows.forEach(r => {
+      if (!bySection[r.section_name]) bySection[r.section_name] = []
+      bySection[r.section_name].push(r)
+    })
+
+    const { rows: dayRows } = await pool.query(
+      `SELECT section_data, xp_earned FROM day_records WHERE student_id = $1 AND day_number = $2`,
+      [student_id, day_number]
+    )
+
+    if (dayRows.length) {
+      const sectionData = dayRows[0].section_data || {}
+
+      let totalMarks = 0
+      let totalXp = 0
+      let totalCorrect = 0
+      let totalQs = 0
+
+      // Update each section in sectionData
+      for (const secName of Object.keys(bySection)) {
+        const secResps = bySection[secName]
+        const secCorrect = secResps.filter(r => r.is_correct === true).length
+        const secQs = secResps.length
+
+        if (sectionData[secName]) {
+          sectionData[secName].correct = secCorrect
+          sectionData[secName].marks = secCorrect * 10
+          sectionData[secName].xpEarned = secCorrect * 10
+        }
+      }
+
+      // Recalculate paper aggregates from all sections
+      const sections = Object.keys(sectionData)
+      for (const sec of sections) {
+        const sd = sectionData[sec] || {}
+        totalMarks += sd.marks || 0
+        totalXp += sd.xpEarned || 0
+        totalCorrect += sd.correct || 0
+        totalQs += sd.questionCount || 0
+      }
+
+      const newAccuracy = totalQs > 0 ? Math.round((totalCorrect / totalQs) * 100) : 0
+
+      // Update day_records
+      await pool.query(
+        `UPDATE day_records
+         SET total_marks = $1, accuracy = $2, xp_earned = xp_earned + $3, answers = $4, section_data = $5, updated_at = NOW()
+         WHERE student_id = $6 AND day_number = $7`,
+        [totalMarks, newAccuracy, xpDifference, JSON.stringify(allRespRows), JSON.stringify(sectionData), student_id, day_number]
+      )
+
+      // Update student cumulative XP
+      await pool.query(
+        `UPDATE students 
+         SET xp_total = xp_total + $1, updated_at = NOW() 
+         WHERE id = $2`,
+        [xpDifference, student_id]
+      )
+    }
+
+    res.json({ success: true })
+  } catch (err) {
+    console.error('[grade_response]', err)
+    res.status(500).json({ message: 'Server error.' })
+  }
+})
+
 export default router
+

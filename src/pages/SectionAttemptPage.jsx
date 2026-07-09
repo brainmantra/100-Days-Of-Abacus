@@ -38,6 +38,9 @@ export default function SectionAttemptPage() {
   const [lastXp, setLastXp] = useState(0)
   const [totalXp, setTotalXp] = useState(0)
 
+  const [currentPageIdx, setCurrentPageIdx] = useState(0)
+  const [formAnswers, setFormAnswers] = useState({})
+
   const responsesRef = useRef(responses)
   const sectionSecondsRef = useRef(sectionSeconds)
   const submittingCheatingRef = useRef(false)
@@ -158,6 +161,119 @@ export default function SectionAttemptPage() {
 
   const getQuestionType = (q) => {
     return q?.question_type || 'add'
+  }
+
+  let isGoogleForm = false
+  let parsedForm = null
+  if (currentQ && currentQ.question) {
+    try {
+      const parsed = typeof currentQ.question === 'string' ? JSON.parse(currentQ.question) : currentQ.question
+      if (parsed && typeof parsed === 'object' && parsed.items) {
+        isGoogleForm = true
+        parsedForm = parsed
+      }
+    } catch (e) {}
+  }
+
+  const getPages = (items) => {
+    const pages = []
+    let currentPage = { header: null, items: [] }
+    
+    items.forEach(item => {
+      if (item.type === 'section_header') {
+        if (currentPage.items.length > 0 || currentPage.header) {
+          pages.push(currentPage)
+        }
+        currentPage = { header: item, items: [] }
+      } else {
+        currentPage.items.push(item)
+      }
+    })
+    if (currentPage.items.length > 0 || currentPage.header) {
+      pages.push(currentPage)
+    }
+    return pages.length > 0 ? pages : [{ header: null, items: [] }]
+  }
+
+  const handleFormSubmit = () => {
+    const questionsList = parsedForm.items.filter(i => i.type === 'question')
+    const unanswered = questionsList.filter(item => {
+      const ans = formAnswers[item.id]
+      if (item.questionType === 'checkbox') {
+        return !Array.isArray(ans) || ans.length === 0
+      }
+      return !ans || !String(ans).trim()
+    })
+
+    if (unanswered.length > 0) {
+      toast.error('Please answer all questions before submitting.')
+      return
+    }
+
+    const timeTaken = (Date.now() - questionStartRef.current) / 1000
+    const timePerQ = parseFloat((timeTaken / questionsList.length).toFixed(2))
+
+    let formTotalXp = 0
+    const formResponses = []
+
+    questionsList.forEach(item => {
+      const ans = formAnswers[item.id]
+      const isCheckbox = item.questionType === 'checkbox'
+      const studentAns = isCheckbox 
+        ? JSON.stringify(ans) 
+        : String(ans).trim()
+
+      const hasCorrectAnswer = isCheckbox
+        ? (Array.isArray(item.correctAnswer) && item.correctAnswer.length > 0)
+        : (item.correctAnswer && String(item.correctAnswer).trim() !== '')
+
+      let isCorrect = null
+      let xp = 0
+      let correctAnsStr = ''
+
+      if (hasCorrectAnswer) {
+        if (item.questionType === 'multiple_choice') {
+          const correctOpt = item.options.find(o => o.id === item.correctAnswer)
+          correctAnsStr = correctOpt ? correctOpt.text : String(item.correctAnswer)
+          isCorrect = correctAnsStr.toLowerCase().trim() === studentAns.toLowerCase().trim()
+        } else if (item.questionType === 'checkbox') {
+          const correctOpts = item.options.filter(o => item.correctAnswer.includes(o.id)).map(o => o.text)
+          correctAnsStr = JSON.stringify(correctOpts)
+          const studentOpts = ans || []
+          isCorrect = correctOpts.length === studentOpts.length && correctOpts.every(o => studentOpts.includes(o))
+        } else {
+          correctAnsStr = String(item.correctAnswer).trim()
+          isCorrect = correctAnsStr.toLowerCase().trim() === studentAns.toLowerCase().trim()
+        }
+        xp = isCorrect ? 10 : 0
+      } else {
+        isCorrect = null
+        xp = 0
+      }
+
+      formTotalXp += xp
+      formResponses.push({
+        question_id: currentQ.id,
+        question_snapshot: item.questionText || 'Custom Question',
+        correct_answer: correctAnsStr,
+        student_answer: studentAns,
+        is_correct: isCorrect,
+        time_taken_seconds: timePerQ,
+      })
+    })
+
+    if (formTotalXp > 0) {
+      setLastXp(formTotalXp)
+      setTotalXp(prev => prev + formTotalXp)
+      setShowXp(true)
+      setTimeout(() => setShowXp(false), 900)
+    }
+
+    const newResponses = [...responses, ...formResponses]
+    setResponses(newResponses)
+
+    setTimerRunning(false)
+    submitSection(newResponses)
   }
 
   const buildSnapshot = (q) => {
@@ -542,6 +658,184 @@ export default function SectionAttemptPage() {
 
         {/* Teacher / free-text */}
         {isTeacher && (() => {
+          if (isGoogleForm) {
+            const pages = getPages(parsedForm.items)
+            const currentPage = pages[currentPageIdx] || { header: null, items: [] }
+
+            return (
+              <div className="card animate-pop" style={{ maxWidth: 680, width: '100%', padding: '2rem', background: 'var(--bg-card)', boxShadow: 'var(--shadow-lg)' }}>
+                {currentPageIdx === 0 && (
+                  <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+                    <h2 style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--primary-light)' }}>{parsedForm.title}</h2>
+                    {parsedForm.description && (
+                      <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem', fontSize: '0.95rem', lineHeight: 1.5 }}>
+                        {parsedForm.description}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {currentPage.header && (
+                  <div style={{ background: 'rgba(255,255,255,0.02)', borderLeft: '4px solid #673ab7', padding: '1rem', borderRadius: '4px', marginBottom: '1.5rem' }}>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 600 }}>{currentPage.header.title}</h3>
+                    {currentPage.header.description && (
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>{currentPage.header.description}</p>
+                    )}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  {currentPage.items.map((item) => {
+                    if (item.type === 'image_only') {
+                      return (
+                        <div key={item.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
+                          {item.image && (
+                            <img 
+                              src={item.image} 
+                              alt={item.description || 'Form block image'} 
+                              style={{ maxWidth: '100%', maxHeight: '350px', borderRadius: '6px', border: '1px solid var(--border)' }} 
+                            />
+                          )}
+                          {item.description && (
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontStyle: 'italic' }}>{item.description}</p>
+                          )}
+                        </div>
+                      )
+                    }
+
+                    if (item.type === 'question') {
+                      const isCheckbox = item.questionType === 'checkbox'
+                      const hasCorrectAnswer = isCheckbox
+                        ? (Array.isArray(item.correctAnswer) && item.correctAnswer.length > 0)
+                        : (item.correctAnswer && String(item.correctAnswer).trim() !== '')
+
+                      return (
+                        <div key={item.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', background: 'var(--bg-elevated)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <span style={{ fontWeight: 600, fontSize: '1.05rem', color: 'var(--text-primary)' }}>{item.questionText}</span>
+                            {!hasCorrectAnswer && (
+                              <span className="badge badge-warning" style={{ fontSize: '0.75rem' }}>⚠️ To be checked by teacher</span>
+                            )}
+                          </div>
+
+                          {item.image && (
+                            <div style={{ textAlign: 'center', margin: '0.5rem 0' }}>
+                              <img src={item.image} alt="Question" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '4px' }} />
+                            </div>
+                          )}
+
+                          {item.questionType === 'short_answer' && (
+                            <input
+                              type="text"
+                              placeholder="Your answer"
+                              value={formAnswers[item.id] || ''}
+                              onChange={(e) => setFormAnswers({ ...formAnswers, [item.id]: e.target.value })}
+                              style={{ width: '100%', padding: '0.6rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text-primary)' }}
+                            />
+                          )}
+
+                          {item.questionType === 'paragraph' && (
+                            <textarea
+                              rows={3}
+                              placeholder="Your answer (paragraph)"
+                              value={formAnswers[item.id] || ''}
+                              onChange={(e) => setFormAnswers({ ...formAnswers, [item.id]: e.target.value })}
+                              style={{ width: '100%', padding: '0.6rem', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '4px', color: 'var(--text-primary)', resize: 'vertical' }}
+                            />
+                          )}
+
+                          {item.questionType === 'multiple_choice' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                              {item.options.map(opt => (
+                                <label key={opt.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.3rem 0' }}>
+                                  <input
+                                    type="radio"
+                                    name={item.id}
+                                    checked={formAnswers[item.id] === opt.text}
+                                    onChange={() => setFormAnswers({ ...formAnswers, [item.id]: opt.text })}
+                                  />
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span>{opt.text}</span>
+                                    {opt.image && (
+                                      <img src={opt.image} alt={opt.text} style={{ maxHeight: '60px', borderRadius: '4px', border: '1px solid var(--border)' }} />
+                                    )}
+                                  </div>
+                                </label>
+                              ))}
+                            </div>
+                          )}
+
+                          {item.questionType === 'checkbox' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                              {item.options.map(opt => {
+                                const currentVal = Array.isArray(formAnswers[item.id]) ? formAnswers[item.id] : []
+                                const isChecked = currentVal.includes(opt.text)
+                                return (
+                                  <label key={opt.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.3rem 0' }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={(e) => {
+                                        let nextVal = [...currentVal]
+                                        if (e.target.checked) {
+                                          nextVal.push(opt.text)
+                                        } else {
+                                          nextVal = nextVal.filter(v => v !== opt.text)
+                                        }
+                                        setFormAnswers({ ...formAnswers, [item.id]: nextVal })
+                                      }}
+                                    />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                      <span>{opt.text}</span>
+                                      {opt.image && (
+                                        <img src={opt.image} alt={opt.text} style={{ maxHeight: '60px', borderRadius: '4px', border: '1px solid var(--border)' }} />
+                                      )}
+                                    </div>
+                                  </label>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    }
+
+                    return null
+                  })}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={currentPageIdx === 0}
+                    onClick={() => setCurrentPageIdx(p => p - 1)}
+                  >
+                    ◀ Back
+                  </button>
+
+                  {currentPageIdx < pages.length - 1 ? (
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => setCurrentPageIdx(p => p + 1)}
+                    >
+                      Next Page ▶
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-teacher"
+                      onClick={handleFormSubmit}
+                    >
+                      Submit Form 🚀
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          }
+
           const blocks = [...getParsedBlocks(currentQ)];
           const isPowerExercise = section === 'power_exercise' || currentQ?.section === 'power_exercise';
           
