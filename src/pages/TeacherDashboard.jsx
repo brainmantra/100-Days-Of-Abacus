@@ -318,6 +318,43 @@ export default function TeacherDashboard() {
   const [formTitle, setFormTitle] = useState('Abacus Daily Challenge')
   const [formDescription, setFormDescription] = useState('Solve all questions step by step.')
   const [formItems, setFormItems] = useState([])
+  const [savedQuestions, setSavedQuestions] = useState([])
+  const [loadingQ, setLoadingQ] = useState(false)
+  const [localCustomSections, setLocalCustomSections] = useState([])
+
+  const getActiveSections = () => {
+    const std = getTeacherSectionsForLevel(qLevel, qDay)
+    const customSecs = []
+    
+    // Merge database discovered custom sections
+    savedQuestions.forEach(q => {
+      if (q.level === qLevel && q.day_number === parseInt(qDay, 10)) {
+        const isStd = std.some(s => s.value === q.section)
+        const isAlreadyAdded = customSecs.some(s => s.value === q.section)
+        if (!isStd && !isAlreadyAdded) {
+          let label = q.section
+          try {
+            const parsed = JSON.parse(q.question)
+            if (parsed && parsed.title) {
+              label = parsed.title
+            }
+          } catch(e) {}
+          customSecs.push({ value: q.section, label })
+        }
+      }
+    })
+
+    // Merge local unsaved custom sections
+    localCustomSections.forEach(localSec => {
+      const isStd = std.some(s => s.value === localSec.value)
+      const isDb = customSecs.some(s => s.value === localSec.value)
+      if (!isStd && !isDb) {
+        customSecs.push(localSec)
+      }
+    })
+
+    return [...std, ...customSecs]
+  }
 
   const handleExcelImport = (e) => {
     const file = e.target.files[0]
@@ -394,8 +431,7 @@ export default function TeacherDashboard() {
     }
   }, [qLevel, qDay, savedQuestions, localCustomSections])
 
-  const [savedQuestions, setSavedQuestions] = useState([])
-  const [loadingQ, setLoadingQ] = useState(false)
+
 
   // Detailed Student view state
   const [selectedStudent, setSelectedStudent] = useState(null)
