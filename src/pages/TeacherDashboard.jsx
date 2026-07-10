@@ -736,11 +736,11 @@ export default function TeacherDashboard() {
                     if (e.target.value === '__new_section__') {
                       const name = prompt('Enter the name for the new section:')
                       if (name && name.trim()) {
-                        const slug = name.toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').trim()
-                        if (slug) {
-                          setLocalCustomSections(prev => [...prev, { value: slug, label: name }])
-                          setQSection(slug)
-                          setFormTitle(name)
+                        const cleanName = name.trim()
+                        if (cleanName) {
+                          setLocalCustomSections(prev => [...prev, { value: cleanName, label: cleanName }])
+                          setQSection(cleanName)
+                          setFormTitle(cleanName)
                         }
                       }
                     } else {
