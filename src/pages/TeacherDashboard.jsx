@@ -31,6 +31,124 @@ const isMultiLineRequired = (level, day) => {
   return false;
 };
 
+const FormPreview = ({ questionJson }) => {
+  try {
+    const parsed = typeof questionJson === 'string' ? JSON.parse(questionJson) : questionJson
+    if (!parsed || typeof parsed !== 'object') {
+      return <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{String(questionJson)}</div>
+    }
+
+    let items = []
+    if (Array.isArray(parsed.items)) {
+      items = parsed.items
+    } else if (Array.isArray(parsed)) {
+      items = parsed
+    } else {
+      return <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{parsed.title || String(questionJson)}</div>
+    }
+
+    return (
+      <div style={{
+        marginTop: '0.75rem',
+        padding: '1rem',
+        background: 'rgba(255,255,255,0.015)',
+        borderRadius: '8px',
+        border: '1px solid var(--border)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1rem',
+        width: '100%',
+      }}>
+        {items.map((item, idx) => {
+          if (item.type === 'section_header') {
+            return (
+              <div key={item.id || idx} style={{
+                background: 'rgba(255,122,0,0.08)',
+                borderLeft: '4px solid var(--primary)',
+                padding: '0.5rem 0.8rem',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                color: 'var(--primary)',
+                borderRadius: '4px',
+              }}>
+                📁 Section: {item.title || 'Untitled Section'}
+              </div>
+            )
+          }
+          if (item.type === 'image_only') {
+            return (
+              <div key={item.id || idx} style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+                padding: '0.5rem',
+                background: 'rgba(255,255,255,0.01)',
+                borderRadius: '6px',
+                border: '1px dotted var(--border)'
+              }}>
+                {item.image && (
+                  <img src={item.image} alt="Block" style={{ maxHeight: '100px', maxWidth: '100%', objectFit: 'contain', alignSelf: 'flex-start', borderRadius: '4px' }} />
+                )}
+                {item.description && (
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                    ℹ️ Image Description: {item.description}
+                  </div>
+                )}
+              </div>
+            )
+          }
+          if (item.type === 'question') {
+            return (
+              <div key={item.id || idx} style={{
+                fontSize: '0.9rem',
+                color: 'var(--text-main)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.4rem',
+                paddingBottom: '0.75rem',
+                borderBottom: '1px solid rgba(255,255,255,0.04)'
+              }}>
+                <div style={{ fontWeight: 600, display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                  <span>Q{idx + 1}: {item.questionText || <em style={{ color: 'var(--text-muted)' }}>[Empty Question]</em>}</span>
+                  <span className="badge badge-muted" style={{ fontSize: '0.65rem', textTransform: 'capitalize' }}>
+                    {String(item.questionType).replace('_', ' ')}
+                  </span>
+                </div>
+                {item.image && (
+                  <img src={item.image} alt="Q Visual" style={{ maxHeight: '80px', maxWidth: '100%', objectFit: 'contain', alignSelf: 'flex-start', borderRadius: '4px', margin: '0.2rem 0' }} />
+                )}
+                {item.options && item.options.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginLeft: '1rem' }}>
+                    {item.options.map(opt => (
+                      <div key={opt.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        <span style={{ fontSize: '0.5rem' }}>●</span>
+                        <span>{opt.text}</span>
+                        {opt.image && (
+                          <img src={opt.image} alt={opt.text} style={{ maxHeight: '35px', borderRadius: '2px', border: '1px solid var(--border)' }} />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 600, marginTop: '0.2rem' }}>
+                  Correct Answer:{' '}
+                  {Array.isArray(item.correctAnswer)
+                    ? item.correctAnswer.join(', ')
+                    : (item.correctAnswer ? String(item.correctAnswer) : <em style={{ color: 'var(--text-muted)' }}>None (manual check)</em>)
+                  }
+                </div>
+              </div>
+            )
+          }
+          return null
+        })}
+      </div>
+    )
+  } catch (e) {
+    return <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{String(questionJson)}</div>
+  }
+}
+
 function StatCard({ icon, label, value, color }) {
   return (
     <div className="stat-card">
@@ -191,7 +309,7 @@ export default function TeacherDashboard() {
 
   // Question Editor state
   const [qLevel, setQLevel] = useState('')
-  const [qDay, setQDay] = useState('')
+  const [qDay, setQDay] = useState('1')
   const [qSection, setQSection] = useState('teacher_day')
   const [qBlocks, setQBlocks] = useState([{ type: 'text', content: '' }, { type: 'box', answer: '' }])
   const [qFormatExample, setQFormatExample] = useState('')
@@ -564,7 +682,12 @@ export default function TeacherDashboard() {
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Day Number</label>
-                  <input type="number" min="0" max="100" value={qDay} onChange={e => setQDay(e.target.value)} placeholder="e.g. 5" />
+                  <select value={qDay} onChange={e => setQDay(e.target.value)}>
+                    <option value="0">Demo Day</option>
+                    {Array.from({ length: 100 }, (_, i) => i + 1).map(d => (
+                      <option key={d} value={String(d)}>Day {d}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Section</label>
@@ -1148,66 +1271,9 @@ export default function TeacherDashboard() {
               </div>
             </div>
             
-            {/* List */}
-            <div className="card animate-fade-in" style={{ padding: '1.5rem', marginTop: '1.5rem' }}>
-              <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Existing Questions</h3>
-              {loadingQ ? <div className="spinner" /> : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {savedQuestions.map(q => (
-                    <div key={q.id} style={{
-                      padding: '1rem', background: 'var(--surface-color)', borderRadius: '8px',
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'
-                    }}>
-                      <div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                          Level {q.level} - Day {q.day_number} ({q.section})
-                        </div>
-                        <div style={{ fontWeight: 500 }}>
-                          {(() => {
-                            try {
-                              const parsed = JSON.parse(q.question);
-                              return Array.isArray(parsed) ? parsed.map(b => b.type === 'box' ? '[BOX]' : b.content).join(' ') : q.question;
-                            } catch {
-                              return q.question;
-                            }
-                          })()}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn btn-ghost btn-sm" onClick={() => {
-                          setEditQId(q.id); setQLevel(q.level); setQDay(String(q.day_number)); setQSection(q.section);
-                          setQFormatExample(q.format_example || '');
-                          try {
-                            const parsed = JSON.parse(q.question);
-                            if (Array.isArray(parsed)) {
-                              setQBlocks(parsed);
-                            } else throw new Error();
-                          } catch {
-                            // Legacy parsing
-                            let b = [{ type: 'text', content: q.question }];
-                            if (q.answer) {
-                              try {
-                                const parsedAns = JSON.parse(q.answer);
-                                if (Array.isArray(parsedAns)) {
-                                  parsedAns.forEach(a => b.push({ type: 'box', answer: a }));
-                                } else throw new Error();
-                              } catch {
-                                b.push({ type: 'box', answer: q.answer });
-                              }
-                            }
-                            setQBlocks(b);
-                          }
-                        }}>Edit</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Saved questions */}
-            <div>
-              <h3 style={{ marginBottom: '0.75rem', fontSize: '1rem', color: 'var(--text-secondary)' }}>
+            {/* Saved questions list */}
+            <div className="card animate-fade-in" style={{ padding: '1.5rem', marginTop: '2rem' }}>
+              <h3 style={{ marginBottom: '1.25rem', fontSize: '1.2rem', color: 'var(--text-primary)' }}>
                 Saved Questions {qLevel && `(${LEVEL_LABELS[qLevel]})`}
               </h3>
               {loadingQ ? (
@@ -1215,68 +1281,50 @@ export default function TeacherDashboard() {
                   <div className="spinner" />
                 </div>
               ) : savedQuestions.length === 0 ? (
-                <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)' }}>
-                  No saved questions yet.
+                <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+                  No saved questions for this level yet.
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                   {savedQuestions.map(q => (
-                    <div key={q.id} className="card" style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
-                      <div>
-                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.4rem' }}>
-                          <span className="badge badge-info">Day {q.day_number}</span>
-                          <span className="badge badge-muted">{q.section}</span>
+                    <div key={q.id} style={{
+                      padding: '1.25rem',
+                      background: 'var(--bg-elevated)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.5rem',
+                      position: 'relative'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <span className="badge badge-info" style={{ background: 'var(--primary)', color: '#fff', padding: '0.2rem 0.5rem' }}>
+                            {q.day_number === 0 ? 'Demo Day' : `Day ${q.day_number}`}
+                          </span>
+                          <span className="badge badge-muted" style={{ padding: '0.2rem 0.5rem', textTransform: 'capitalize' }}>
+                            {q.section}
+                          </span>
                         </div>
-                        <p style={{ fontWeight: 500, marginBottom: '0.25rem' }}>
-                          {(() => {
-                            try {
-                              const parsed = JSON.parse(q.question);
-                              return Array.isArray(parsed) ? parsed.map(b => b.type === 'box' ? '[BOX]' : b.content).join(' ') : q.question;
-                            } catch {
-                              return q.question;
-                            }
-                          })()}
-                        </p>
-                        <p style={{ color: 'var(--success)', fontSize: '0.85rem' }}>
-                          Answer: {(() => {
-                            try {
-                              const parsed = JSON.parse(q.answer);
-                              return Array.isArray(parsed) ? parsed.join(', ') : q.answer;
-                            } catch {
-                              return q.answer;
-                            }
-                          })()}
-                        </p>
-                      </div>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => {
-                          setEditQId(q.id); setQLevel(q.level); setQDay(String(q.day_number)); setQSection(q.section);
+                        <button className="btn btn-primary btn-sm" onClick={() => {
+                          setEditQId(q.id);
+                          setQLevel(q.level);
+                          setQDay(String(q.day_number));
+                          setQSection(q.section);
                           setQFormatExample(q.format_example || '');
-                          try {
-                            const parsed = JSON.parse(q.question);
-                            if (Array.isArray(parsed)) {
-                              setQBlocks(parsed);
-                            } else throw new Error();
-                          } catch {
-                            // Legacy parsing
-                            let b = [{ type: 'text', content: q.question }];
-                            if (q.answer) {
-                              try {
-                                const parsedAns = JSON.parse(q.answer);
-                                if (Array.isArray(parsedAns)) {
-                                  parsedAns.forEach(a => b.push({ type: 'box', answer: a }));
-                                } else throw new Error();
-                              } catch {
-                                b.push({ type: 'box', answer: q.answer });
-                              }
-                            }
-                            setQBlocks(b);
-                          }
-                        }}
-                      >
-                        Edit
-                      </button>
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}>
+                          Edit Question
+                        </button>
+                      </div>
+                      
+                      {q.format_example && (
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                          💡 <em>Format Instruction: {q.format_example}</em>
+                        </div>
+                      )}
+
+                      <FormPreview questionJson={q.question} />
                     </div>
                   ))}
                 </div>
