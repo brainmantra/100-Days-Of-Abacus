@@ -83,13 +83,14 @@ export function getSectionsForLevel(level, dayNumber) {
 }
 
 export async function getSectionsForLevelAsync(level, dayNumber) {
+  let defaultSections = []
   if (level !== 'l1' && level !== 'beginner' && dayNumber > 0 && dayNumber % 5 === 0) {
-    return ['power_exercise']
-  }
-  
-  const defaultSections = [...(LEVEL_SECTIONS[level] || ['abacus'])]
-  if (level !== 'l1' && level !== 'beginner' && dayNumber === 0) {
-    defaultSections.push('power_exercise')
+    defaultSections = ['power_exercise']
+  } else {
+    defaultSections = [...(LEVEL_SECTIONS[level] || ['abacus'])]
+    if (level !== 'l1' && level !== 'beginner' && dayNumber === 0) {
+      defaultSections.push('power_exercise')
+    }
   }
 
   const targetLevel = level === 'gm' ? 'alumni' : level;

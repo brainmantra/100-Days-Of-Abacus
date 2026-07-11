@@ -902,7 +902,7 @@ export default function SectionAttemptPage() {
                 {currentQ.options.map(opt => (
                   <label key={opt.id} style={{
                     display: 'flex',
-                    alignItems: 'center',
+                    alignItems: 'flex-start',
                     gap: '0.75rem',
                     cursor: !!feedback ? 'default' : 'pointer',
                     padding: '0.6rem 1rem',
@@ -917,7 +917,7 @@ export default function SectionAttemptPage() {
                       checked={answer === opt.text}
                       disabled={!!feedback}
                       onChange={() => setAnswer(opt.text)}
-                      style={{ accentColor: 'var(--primary)' }}
+                      style={{ accentColor: 'var(--primary)', marginTop: '0.25rem' }}
                     />
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <span style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>{opt.text}</span>
@@ -946,7 +946,7 @@ export default function SectionAttemptPage() {
                     return (
                       <label key={opt.id} style={{
                         display: 'flex',
-                        alignItems: 'center',
+                        alignItems: 'flex-start',
                         gap: '0.75rem',
                         cursor: !!feedback ? 'default' : 'pointer',
                         padding: '0.6rem 1rem',
@@ -1115,12 +1115,13 @@ export default function SectionAttemptPage() {
                           {item.questionType === 'multiple_choice' && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                               {item.options.map(opt => (
-                                <label key={opt.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.3rem 0' }}>
+                                <label key={opt.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer', padding: '0.3rem 0' }}>
                                   <input
                                     type="radio"
                                     name={item.id}
                                     checked={formAnswers[item.id] === opt.text}
                                     onChange={() => setFormAnswers({ ...formAnswers, [item.id]: opt.text })}
+                                    style={{ marginTop: '0.25rem' }}
                                   />
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <span>{opt.text}</span>
@@ -1139,7 +1140,7 @@ export default function SectionAttemptPage() {
                                 const currentVal = Array.isArray(formAnswers[item.id]) ? formAnswers[item.id] : []
                                 const isChecked = currentVal.includes(opt.text)
                                 return (
-                                  <label key={opt.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.3rem 0' }}>
+                                  <label key={opt.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer', padding: '0.3rem 0' }}>
                                     <input
                                       type="checkbox"
                                       checked={isChecked}
@@ -1233,7 +1234,8 @@ export default function SectionAttemptPage() {
                 <div style={{ 
                   background: 'rgba(163, 123, 168, 0.1)', border: '1px solid rgba(163, 123, 168, 0.3)',
                   color: '#c084fc', padding: '0.5rem 1rem', borderRadius: '8px', 
-                  fontSize: '0.9rem', marginBottom: '1rem', textAlign: 'center'
+                  fontSize: '0.9rem', marginBottom: '1rem', textAlign: 'center',
+                  whiteSpace: 'pre-wrap'
                 }}>
                   Format example: {currentQ.format_example}
                 </div>

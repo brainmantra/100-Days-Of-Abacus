@@ -171,6 +171,16 @@ const getTeacherSectionsForLevel = (level, dayStr) => {
       { value: 'power_exercise', label: '⚡ Power Exercise' }
     ]
   }
+  if (day > 0 && day % 5 === 0) {
+    if (level === 'l1' || level === 'beginner') {
+      return [
+        { value: 'abacus', label: '🧮 Abacus' }
+      ]
+    }
+    return [
+      { value: 'power_exercise', label: '⚡ Power Exercise' }
+    ]
+  }
   if (level === 'l1' || level === 'beginner') return [
     { value: 'abacus', label: '🧮 Abacus' }
   ]
@@ -321,6 +331,7 @@ export default function TeacherDashboard() {
   const [savedQuestions, setSavedQuestions] = useState([])
   const [loadingQ, setLoadingQ] = useState(false)
   const [localCustomSections, setLocalCustomSections] = useState([])
+  const [previewingSection, setPreviewingSection] = useState(null)
 
   const getActiveSections = () => {
     const std = getTeacherSectionsForLevel(qLevel, qDay)
@@ -839,12 +850,12 @@ export default function TeacherDashboard() {
               <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem', background: 'var(--bg-card)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
                 <div className="form-group" style={{ marginBottom: 0, flex: 1 }}>
                   <label className="form-label" style={{ marginBottom: '0.2rem', display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Format Example / Extra Instructions (Optional)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 'Enter integer' or instructions"
+                  <textarea
+                    placeholder="e.g. 'Enter integer' or instructions (allows multi-line)"
                     value={qFormatExample}
+                    rows={3}
                     onChange={e => setQFormatExample(e.target.value)}
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)' }}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', resize: 'vertical' }}
                   />
                 </div>
               </div>
@@ -1413,20 +1424,25 @@ export default function TeacherDashboard() {
                             {q.section}
                           </span>
                         </div>
-                        <button className="btn btn-primary btn-sm" onClick={() => {
-                          setEditQId(q.id);
-                          setQLevel(q.level);
-                          setQDay(String(q.day_number));
-                          setQSection(q.section);
-                          setQFormatExample(q.format_example || '');
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}>
-                          Edit Question
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button className="btn btn-primary btn-sm" onClick={() => {
+                            setEditQId(q.id);
+                            setQLevel(q.level);
+                            setQDay(String(q.day_number));
+                            setQSection(q.section);
+                            setQFormatExample(q.format_example || '');
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}>
+                            Edit Question
+                          </button>
+                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPreviewingSection(q)}>
+                            👁 Student Preview
+                          </button>
+                        </div>
                       </div>
                       
                       {q.format_example && (
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem', whiteSpace: 'pre-wrap' }}>
                           💡 <em>Format Instruction: {q.format_example}</em>
                         </div>
                       )}
@@ -1600,7 +1616,321 @@ export default function TeacherDashboard() {
         {tab === 'answers' && (
           <StudentAnswersTab apiInstance={teacherApi} isTeacherPortal={true} />
         )}
+        {previewingSection && (
+          <StudentPreviewModal 
+            sectionData={previewingSection} 
+            onClose={() => setPreviewingSection(null)} 
+          />
+        )}
       </main>
+    </div>
+  )
+}
+
+const StudentPreviewModal = ({ sectionData, onClose }) => {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [zoomedImage, setZoomedImage] = useState(null)
+  
+  if (!sectionData) return null
+  
+  let title = sectionData.section
+  let items = []
+  try {
+    const parsed = typeof sectionData.question === 'string' ? JSON.parse(sectionData.question) : sectionData.question
+    if (parsed) {
+      if (parsed.title) title = parsed.title
+      if (Array.isArray(parsed.items)) {
+        items = parsed.items
+      } else if (Array.isArray(parsed)) {
+        items = parsed
+      }
+    }
+  } catch(e) {}
+
+  // Process items into student questions (questions and image_only blocks)
+  const questions = []
+  items.forEach(item => {
+    if (item.type === 'question') {
+      questions.push({
+        id: item.id,
+        virtualType: 'teacher_custom',
+        questionType: item.questionType,
+        questionText: item.questionText,
+        image: item.image,
+        options: item.options || [],
+        correctAnswer: item.correctAnswer,
+      })
+    } else if (item.type === 'image_only') {
+      questions.push({
+        id: item.id,
+        virtualType: 'image_only',
+        questionText: item.description || '',
+        image: item.image,
+        options: [],
+        correctAnswer: null,
+      })
+    }
+  })
+
+  const currentQ = questions[currentIndex]
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0, left: 0, width: '100vw', height: '100vh',
+      background: 'rgba(10, 13, 20, 0.95)',
+      zIndex: 9999,
+      display: 'flex', flexDirection: 'column',
+      color: 'var(--text-primary)',
+      fontFamily: 'var(--font-sans)',
+      overflowY: 'auto'
+    }}>
+      {/* Header */}
+      <div style={{
+        background: 'rgba(255,255,255,0.02)',
+        borderBottom: '1px solid var(--border)',
+        padding: '1rem 2rem',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+      }}>
+        <div>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Student View Preview
+          </span>
+          <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--primary)' }}>
+            {title} ({sectionData.level.toUpperCase()} • Day {sectionData.day_number})
+          </h3>
+        </div>
+        <button 
+          type="button"
+          className="btn btn-ghost" 
+          onClick={onClose}
+          style={{ padding: '0.5rem 1rem' }}
+        >
+          ✕ Close Preview
+        </button>
+      </div>
+
+      {/* Main content area */}
+      <div style={{
+        flex: 1,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        padding: '2rem 1.5rem',
+      }}>
+        {questions.length === 0 ? (
+          <div className="card" style={{ padding: '2rem', textAlign: 'center', maxWidth: 450 }}>
+            <p style={{ color: 'var(--text-muted)' }}>This section has no questions to preview.</p>
+          </div>
+        ) : (
+          <div style={{ width: '100%', maxWidth: 600, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            
+            {/* Format Instructions Banner */}
+            {sectionData.format_example && (
+              <div style={{ 
+                background: 'rgba(163, 123, 168, 0.1)', border: '1px solid rgba(163, 123, 168, 0.3)',
+                color: '#c084fc', padding: '0.5rem 1rem', borderRadius: '8px', 
+                fontSize: '0.9rem', marginBottom: '1.5rem', width: '100%', textAlign: 'center',
+                whiteSpace: 'pre-wrap'
+              }}>
+                Format instruction: {sectionData.format_example}
+              </div>
+            )}
+
+            {/* Question Card */}
+            <div className="card" style={{ padding: '2rem', width: '100%', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  Question {currentIndex + 1} of {questions.length}
+                </span>
+                <span className="badge badge-info" style={{ fontSize: '0.75rem', textTransform: 'capitalize' }}>
+                  {currentQ.virtualType === 'image_only' ? 'Image Block' : currentQ.questionType.replace('_', ' ')}
+                </span>
+              </div>
+
+              {/* Image Block */}
+              {currentQ.image && (
+                <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                  <img 
+                    src={currentQ.image} 
+                    alt="Question visual" 
+                    onClick={() => setZoomedImage(currentQ.image)}
+                    style={{ 
+                      maxWidth: '100%', 
+                      maxHeight: '400px', 
+                      borderRadius: '8px', 
+                      border: '1px solid var(--border)',
+                      cursor: 'zoom-in'
+                    }} 
+                  />
+                </div>
+              )}
+
+              {/* Question Text */}
+              {currentQ.questionText && (
+                <div style={{ 
+                  fontSize: '1.15rem', 
+                  fontWeight: 500, 
+                  lineHeight: 1.6, 
+                  marginBottom: '1.5rem',
+                  whiteSpace: 'pre-wrap',
+                  color: 'var(--text-primary)'
+                }}>
+                  {currentQ.questionText}
+                </div>
+              )}
+
+              {/* Simulated Inputs */}
+              {currentQ.virtualType === 'image_only' ? (
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic', textAlign: 'center', padding: '1rem', background: 'rgba(255,255,255,0.01)', borderRadius: '6px' }}>
+                  ℹ️ This is an informational block with no answer required.
+                </div>
+              ) : (
+                <div>
+                  {/* Short Answer / Paragraph */}
+                  {(currentQ.questionType === 'short_answer' || currentQ.questionType === 'paragraph') && (
+                    <textarea 
+                      placeholder="Student answer field..."
+                      rows={currentQ.questionType === 'paragraph' ? 3 : 1}
+                      disabled
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.75rem', 
+                        borderRadius: '6px', 
+                        border: '1px solid var(--border)', 
+                        background: 'rgba(255,255,255,0.01)', 
+                        color: 'var(--text-primary)',
+                        resize: 'none'
+                      }}
+                    />
+                  )}
+
+                  {/* Multiple Choice */}
+                  {currentQ.questionType === 'multiple_choice' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {currentQ.options.map(opt => (
+                        <div key={opt.id} style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '0.75rem',
+                          padding: '0.6rem 1rem',
+                          background: 'rgba(255,255,255,0.02)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                        }}>
+                          <input
+                            type="radio"
+                            disabled
+                            style={{ accentColor: 'var(--primary)', marginTop: '0.25rem' }}
+                          />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <span style={{ fontSize: '0.95rem' }}>{opt.text}</span>
+                            {opt.image && (
+                              <img src={opt.image} alt={opt.text} style={{ maxHeight: '60px', borderRadius: '4px' }} />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Checkbox */}
+                  {currentQ.questionType === 'checkbox' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {currentQ.options.map(opt => (
+                        <div key={opt.id} style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '0.75rem',
+                          padding: '0.6rem 1rem',
+                          background: 'rgba(255,255,255,0.02)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                        }}>
+                          <input
+                            type="checkbox"
+                            disabled
+                            style={{ accentColor: 'var(--primary)', marginTop: '0.25rem' }}
+                          />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <span style={{ fontSize: '0.95rem' }}>{opt.text}</span>
+                            {opt.image && (
+                              <img src={opt.image} alt={opt.text} style={{ maxHeight: '60px', borderRadius: '4px' }} />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Correct Answer Info */}
+                  <div style={{ 
+                    marginTop: '1.5rem', 
+                    padding: '0.75rem 1rem', 
+                    background: 'rgba(0, 180, 216, 0.08)', 
+                    borderLeft: '4px solid #00b4d8',
+                    borderRadius: '4px',
+                    fontSize: '0.85rem'
+                  }}>
+                    🔑 <strong>Correct Answer:</strong> {(() => {
+                      if (currentQ.questionType === 'checkbox') {
+                        try {
+                          const parsed = JSON.parse(currentQ.correctAnswer)
+                          if (Array.isArray(parsed)) return parsed.join(', ')
+                        } catch(e) {}
+                      }
+                      if (currentQ.questionType === 'multiple_choice') {
+                        const opt = currentQ.options.find(o => o.id === currentQ.correctAnswer)
+                        if (opt) return opt.text
+                      }
+                      return String(currentQ.correctAnswer || '(None / Manual Review)')
+                    })()}
+                  </div>
+
+                </div>
+              )}
+
+            </div>
+
+            {/* Navigation buttons */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', marginTop: '1.5rem' }}>
+              <button 
+                type="button"
+                className="btn btn-ghost" 
+                disabled={currentIndex === 0} 
+                onClick={() => setCurrentIndex(prev => prev - 1)}
+              >
+                ← Previous
+              </button>
+              <button 
+                type="button"
+                className="btn btn-primary" 
+                disabled={currentIndex === questions.length - 1} 
+                onClick={() => setCurrentIndex(prev => prev + 1)}
+                style={{ background: 'var(--primary)', color: '#fff' }}
+              >
+                Next →
+              </button>
+            </div>
+
+          </div>
+        )}
+      </div>
+
+      {/* Zoom lightbox */}
+      {zoomedImage && (
+        <div 
+          onClick={() => setZoomedImage(null)}
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, width: '100vw', height: '100vh',
+            background: 'rgba(0,0,0,0.9)',
+            zIndex: 10000,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'zoom-out'
+          }}
+        >
+          <img src={zoomedImage} alt="Zoomed Visual" style={{ maxWidth: '95%', maxHeight: '95%', objectFit: 'contain' }} />
+        </div>
+      )}
     </div>
   )
 }
