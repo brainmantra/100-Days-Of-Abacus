@@ -1533,31 +1533,17 @@ function CustomFormsTab() {
               
               {/* Question input + Question Type Selector */}
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                {isMultiLineRequired(qLevel, qDay) ? (
-                  <textarea
-                    rows={2}
-                    placeholder="Question Title (e.g. What is 2 + 2?)"
-                    value={item.questionText || ''}
-                    onChange={e => {
-                      const newItems = [...formItems]
-                      newItems[idx].questionText = e.target.value
-                      setFormItems(newItems)
-                    }}
-                    style={{ flex: 1, minWidth: '200px', fontSize: '1.1rem', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '4px', background: 'var(--bg-elevated)', color: 'var(--text-primary)', resize: 'vertical' }}
-                  />
-                ) : (
-                  <input
-                    type="text"
-                    placeholder="Question Title (e.g. What is 2 + 2?)"
-                    value={item.questionText || ''}
-                    onChange={e => {
-                      const newItems = [...formItems]
-                      newItems[idx].questionText = e.target.value
-                      setFormItems(newItems)
-                    }}
-                    style={{ flex: 1, minWidth: '200px', fontSize: '1.1rem', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '4px', background: 'var(--bg-elevated)', color: 'var(--text-primary)' }}
-                  />
-                )}
+                <textarea
+                  rows={2}
+                  placeholder="Question Title (e.g. What is 2 + 2?)"
+                  value={item.questionText || ''}
+                  onChange={e => {
+                    const newItems = [...formItems]
+                    newItems[idx].questionText = e.target.value
+                    setFormItems(newItems)
+                  }}
+                  style={{ flex: 1, minWidth: '200px', fontSize: '1.1rem', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '4px', background: 'var(--bg-elevated)', color: 'var(--text-primary)', resize: 'vertical' }}
+                />
                 <select
                   value={item.questionType}
                   onChange={e => {
