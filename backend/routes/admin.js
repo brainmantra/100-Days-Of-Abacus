@@ -148,21 +148,29 @@ router.post('/students/sync', requireAdmin, async (req, res) => {
   try {
     const sheetRows = await fetchRegistrationSheet()
     
-    // Deduplicate sheet rows by mobile (keep the first entry)
-    const seenMobiles = new Set()
+    // Helper to clean key
+    const getStudentKey = (name, mobile) => {
+      const cleanName = (name || '').trim().toLowerCase().replace(/\s+/g, ' ')
+      const cleanMobile = (mobile || '').trim()
+      return `${cleanName}_${cleanMobile}`
+    }
+
+    // Deduplicate sheet rows by unique key (keep the first entry if duplicates in sheet)
+    const seenKeys = new Set()
     const uniqueSheetRows = []
     for (const row of sheetRows) {
-      if (!seenMobiles.has(row.mobile)) {
-        seenMobiles.add(row.mobile)
+      const key = getStudentKey(row.name, row.mobile)
+      if (!seenKeys.has(key)) {
+        seenKeys.add(key)
         uniqueSheetRows.push(row)
       }
     }
 
     const { rows: dbStudents } = await pool.query('SELECT id, name, mobile, level FROM students')
     
-    // Create lookup maps
-    const dbStudentsByMobile = new Map(dbStudents.map(s => [s.mobile, s]))
-    const sheetMobiles = new Set(uniqueSheetRows.map(r => r.mobile))
+    // Create lookup maps based on name+mobile key
+    const dbStudentsByKey = new Map(dbStudents.map(s => [getStudentKey(s.name, s.mobile), s]))
+    const sheetKeys = new Set(uniqueSheetRows.map(r => getStudentKey(r.name, r.mobile)))
     
     let addedCount = 0
     let updatedCount = 0
@@ -184,10 +192,11 @@ router.post('/students/sync', requireAdmin, async (req, res) => {
       return { username, plain_password }
     }
 
-    // 1. Process sheet rows: Update existing, insert new
+    // 1. Process unique sheet rows: Update level if level changes, insert if new
     for (const st of uniqueSheetRows) {
       const levelId = normaliseLevel(st.level) || 'l1'
-      const existing = dbStudentsByMobile.get(st.mobile)
+      const key = getStudentKey(st.name, st.mobile)
+      const existing = dbStudentsByKey.get(key)
       
       if (existing) {
         // If name or level changed, update only these
@@ -224,9 +233,10 @@ router.post('/students/sync', requireAdmin, async (req, res) => {
       credentialsGenerated++
     }
 
-    // 3. Delete students who are in the DB but NOT in the sheet
+    // 3. Delete students who are in the DB but NOT in the sheet (matched by name+mobile key)
     for (const dbSt of dbStudents) {
-      if (!sheetMobiles.has(dbSt.mobile)) {
+      const dbKey = getStudentKey(dbSt.name, dbSt.mobile)
+      if (!sheetKeys.has(dbKey)) {
         await pool.query('DELETE FROM students WHERE id = $1', [dbSt.id])
         deletedCount++
       }
