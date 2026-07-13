@@ -554,11 +554,24 @@ export default function TeacherDashboard() {
       setEditQId(match.id)
       setQFormatExample(match.format_example || '')
       try {
-        const parsed = JSON.parse(match.question)
+        const parsed = typeof match.question === 'string' ? JSON.parse(match.question) : match.question
         if (parsed && typeof parsed === 'object' && parsed.items) {
+          let itemsToLoad = parsed.items;
+          // Recover from double-encoded JSON corruption in TeacherDashboard fallback
+          if (itemsToLoad.length === 1 && typeof itemsToLoad[0].questionText === 'string' && itemsToLoad[0].questionText.startsWith('{"title":')) {
+            try {
+              const recovered = JSON.parse(itemsToLoad[0].questionText);
+              if (recovered && Array.isArray(recovered.items)) {
+                itemsToLoad = recovered.items;
+                if (recovered.title) parsed.title = recovered.title;
+                if (recovered.description) parsed.description = recovered.description;
+              }
+            } catch(e) {}
+          }
+
           setFormTitle(parsed.title || defaultTitle)
           setFormDescription(parsed.description || '')
-          setFormItems(parsed.items || [])
+          setFormItems(itemsToLoad || [])
         } else {
           const convertedItems = convertLegacyToFormItems(parsed || match.question, match.answer)
           setFormTitle(defaultTitle)

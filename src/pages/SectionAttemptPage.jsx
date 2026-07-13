@@ -149,7 +149,19 @@ export default function SectionAttemptPage() {
                   setCustomSectionTitle(parsed.title)
                 }
                 if (Array.isArray(parsed.items) && parsed.items.length > 0) {
-                  parsed.items.forEach(item => {
+                  let itemsToRender = parsed.items;
+                  // Recover from double-encoded JSON corruption in TeacherDashboard fallback
+                  if (itemsToRender.length === 1 && typeof itemsToRender[0].questionText === 'string' && itemsToRender[0].questionText.startsWith('{"title":')) {
+                    try {
+                      const recovered = JSON.parse(itemsToRender[0].questionText);
+                      if (recovered && Array.isArray(recovered.items)) {
+                        itemsToRender = recovered.items;
+                        if (recovered.title) setCustomSectionTitle(recovered.title);
+                      }
+                    } catch(e) {}
+                  }
+
+                  itemsToRender.forEach(item => {
                     if (item.type === 'question') {
                       flatQs.push({
                         id: item.id,
