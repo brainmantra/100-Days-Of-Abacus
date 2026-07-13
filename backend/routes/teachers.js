@@ -17,7 +17,7 @@ router.post('/login', async (req, res) => {
 
     const cleanEmail = String(email).trim().toLowerCase()
     const { rows } = await pool.query(
-      `SELECT * FROM teachers WHERE LOWER(email) = $1 AND is_active = TRUE`,
+      `SELECT * FROM teachers WHERE LOWER(TRIM(email)) = $1 AND is_active = TRUE`,
       [cleanEmail]
     )
     const teacher = rows[0]
@@ -33,7 +33,7 @@ router.post('/login', async (req, res) => {
     }
 
     const token = signTeacherToken(teacher)
-    await logActivity({ userType: 'teacher', userId: teacher.id, userLabel: email, action: 'login_success', req })
+    await logActivity({ userType: 'teacher', userId: teacher.id, userLabel: cleanEmail, action: 'login_success', req })
     res.json({
       token,
       teacher: {
