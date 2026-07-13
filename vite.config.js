@@ -12,7 +12,7 @@ export default defineConfig({
         name: '100 Days of Abacus',
         short_name: 'Abacus',
         description: 'Interactive Abacus learning app for students',
-        theme_color: '#34d399',
+        theme_color: '#0c0e15',
         icons: [
           {
             src: 'pwa-192x192.png',
