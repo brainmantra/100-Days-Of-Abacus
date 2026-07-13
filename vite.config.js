@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icons.svg'],
       manifest: {
-        name: '100 Days of Abacus',
-        short_name: 'Abacus',
+        name: 'Brain Mantra',
+        short_name: 'Brain Mantra',
         description: 'Interactive Abacus learning app for students',
         theme_color: '#0c0e15',
         icons: [

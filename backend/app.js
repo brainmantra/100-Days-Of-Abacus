@@ -99,7 +99,7 @@ app.get('/api/run-migration', async (req, res) => {
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 5000
   app.listen(PORT, () => {
-    console.log(`[server] 100 Days of Abacus API listening on port ${PORT}`)
+    console.log(`[server] Brain Mantra API listening on port ${PORT}`)
   })
 }
 

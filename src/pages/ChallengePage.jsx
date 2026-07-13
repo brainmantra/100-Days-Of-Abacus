@@ -169,7 +169,7 @@ export default function ChallengePage() {
               <circle cx="29" cy="26" r="5" fill="#1a2340"/>
               <circle cx="22" cy="36.5" r="5" fill="#1a2340"/>
             </svg>
-            <span className="challenge-brand-text">100 Days of Abacus</span>
+            <span className="challenge-brand-text">Brain Mantra</span>
           </div>
           <nav className="challenge-nav">
             <button

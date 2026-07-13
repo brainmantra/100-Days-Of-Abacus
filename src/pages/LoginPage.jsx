@@ -83,7 +83,7 @@ export default function LoginPage() {
               <circle cx="36" cy="36.5" r="5" fill="white" opacity="0.45"/>
             </svg>
           </div>
-          <h1 className="login-brand-title">100 Days of<br/>Abacus</h1>
+          <h1 className="login-brand-title">Brain Mantra</h1>
           <p className="login-brand-tagline">
             Build lightning-fast mental math skills, one day at a time.
           </p>

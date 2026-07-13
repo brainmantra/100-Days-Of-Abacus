@@ -2497,7 +2497,7 @@ export default function AdminDashboard() {
       <aside className="admin-sidebar">
         <div className="admin-sidebar__logo">
           <h2>🧮 Admin Portal</h2>
-          <p>100 Days of Abacus</p>
+          <p>Brain Mantra</p>
         </div>
         {NAV.map(n => (
           <button key={n.id}
