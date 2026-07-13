@@ -2518,7 +2518,7 @@ export default function AdminDashboard() {
       {/* Sidebar */}
       <aside className="admin-sidebar">
         <div className="admin-sidebar__logo" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem' }}>
-          <img src="/brand-logo.png" alt="Brain Mantra Logo" style={{ width: 42, height: 42, borderRadius: 10 }} />
+          <img src="/brand-logo.jpeg" alt="Brain Mantra Logo" style={{ width: 42, height: 42, borderRadius: 10 }} />
           <h2>Admin Portal</h2>
           <p>Brain Mantra</p>
         </div>

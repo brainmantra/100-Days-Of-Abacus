@@ -86,7 +86,7 @@ export default function StudentLayout({ children }) {
       >
         {/* Sidebar Logo */}
         <div className="admin-sidebar__logo" style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', alignItems: 'flex-start', marginBottom: '1rem' }}>
-          <img src="/brand-logo.png" alt="Brain Mantra Logo" style={{ width: 48, height: 48, borderRadius: 12, marginBottom: 8 }} />
+          <img src="/brand-logo.jpeg" alt="Brain Mantra Logo" style={{ width: 48, height: 48, borderRadius: 12, marginBottom: 8 }} />
           <h2 style={{ fontSize: '0.95rem', lineHeight: 1.2 }}>Brain Mantra</h2>
           <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 1 }}>Student Portal</p>
         </div>

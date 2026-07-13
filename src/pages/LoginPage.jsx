@@ -91,7 +91,7 @@ export default function LoginPage() {
         {/* Brand panel */}
         <div className="login-brand animate-fade">
           <div className="login-brand-logo">
-            <img src="/brand-logo.png" alt="Brain Mantra Logo" style={{ width: 56, height: 56, borderRadius: 14 }} />
+            <img src="/brand-logo.jpeg" alt="Brain Mantra Logo" style={{ width: 56, height: 56, borderRadius: 14 }} />
           </div>
           <h1 className="login-brand-title">Brain Mantra</h1>
           <p className="login-brand-tagline">
