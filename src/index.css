@@ -1299,7 +1299,7 @@ select option { background: var(--bg-elevated); }
 .dash-hero {
   padding: 2rem 2.5rem;
   border-radius: 20px;
-  background: linear-gradient(135deg, rgba(255,122,0,0.08) 0%, rgba(30,38,60,0.5) 50%, rgba(0,0,0,0.02) 100%);
+  background: linear-gradient(135deg, rgba(255,122,0,0.08) 0%, var(--bg-card-hover) 50%, var(--bg-elevated) 100%);
   border: 1px solid rgba(255,122,0,0.15);
   position: relative;
   overflow: hidden;
@@ -1353,9 +1353,9 @@ select option { background: var(--bg-elevated); }
 
 /* ── Premium sidebar overrides ──────────────────────────────────────────────── */
 .admin-sidebar {
-  background: linear-gradient(180deg, #0d1117 0%, #111520 50%, #0c0e15 100%) !important;
-  border-right: 1px solid rgba(255,122,0,0.12) !important;
-  box-shadow: 4px 0 40px rgba(0,0,0,0.6), inset -1px 0 0 rgba(255,122,0,0.06) !important;
+  background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-base) 100%) !important;
+  border-right: 1px solid var(--border-orange) !important;
+  box-shadow: var(--shadow-lg), inset -1px 0 0 var(--border) !important;
 }
 .admin-sidebar__logo h2 {
   font-size: 1.05rem !important;

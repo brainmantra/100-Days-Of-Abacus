@@ -123,7 +123,7 @@ export default function ChallengePage() {
           </div>
           <div className="challenge-progress-ring" style={{ position: 'relative' }}>
             <svg width="74" height="74" viewBox="0 0 74 74" style={{ filter: 'drop-shadow(0 4px 12px rgba(255,122,0,0.25))' }}>
-              <circle cx="37" cy="37" r="32" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="6" />
+              <circle cx="37" cy="37" r="32" fill="none" stroke="var(--border)" strokeWidth="6" />
               <circle
                 cx="37" cy="37" r="32" fill="none" stroke="var(--primary)" strokeWidth="6"
                 strokeDasharray={2 * Math.PI * 32}
@@ -209,8 +209,8 @@ export default function ChallengePage() {
                     className="card-3d"
                     onClick={() => badge.earned && setSelectedBadge(badge)}
                     style={{
-                      background: badge.earned ? 'rgba(255,122,0,0.04)' : 'rgba(255,255,255,0.01)',
-                      border: badge.earned ? '1px solid rgba(255,122,0,0.3)' : '1px solid rgba(255,255,255,0.06)',
+                      background: badge.earned ? 'rgba(255,122,0,0.04)' : 'var(--bg-surface)',
+                      border: badge.earned ? '1px solid rgba(255,122,0,0.3)' : '1px solid var(--border)',
                       borderRadius: '12px',
                       padding: '1.25rem',
                       display: 'flex',

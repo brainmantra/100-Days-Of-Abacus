@@ -218,13 +218,13 @@ export default function StudentLayout({ children }) {
             alignItems: 'center',
             marginBottom: '2rem',
             padding: '0.75rem 1rem',
-            background: 'rgba(12,14,21,0.7)',
+            background: 'var(--bg-card)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
             borderRadius: 16,
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderTop: '1px solid rgba(255,255,255,0.1)',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.05) inset',
+            border: '1px solid var(--border)',
+            borderTop: '1px solid var(--border-strong)',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.2), 0 1px 0 rgba(255,255,255,0.05) inset',
             flexWrap: 'wrap',
             gap: '1rem',
             position: 'sticky',
@@ -298,12 +298,12 @@ export default function StudentLayout({ children }) {
                     style={{
                       position: 'absolute', right: 0, top: 'calc(100% + 10px)',
                       width: 280, zIndex: 101,
-                      background: 'rgba(14,18,28,0.95)',
+                      background: 'var(--bg-card)',
                       backdropFilter: 'blur(30px)',
                       WebkitBackdropFilter: 'blur(30px)',
-                      border: '1px solid rgba(255,122,0,0.2)',
+                      border: '1px solid var(--border)',
                       borderRadius: 16,
-                      boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,122,0,0.08)',
+                      boxShadow: 'var(--shadow-lg), 0 0 0 1px rgba(255,122,0,0.08)',
                       overflow: 'hidden'
                     }}
                   >
@@ -311,7 +311,7 @@ export default function StudentLayout({ children }) {
                     <div style={{
                       padding: '1.25rem 1.25rem 1rem',
                       background: 'linear-gradient(135deg, rgba(255,122,0,0.1), transparent)',
-                      borderBottom: '1px solid rgba(255,255,255,0.06)'
+                      borderBottom: '1px solid var(--border)'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <div 
@@ -363,7 +363,7 @@ export default function StudentLayout({ children }) {
                           display: 'flex', alignItems: 'center', gap: '0.5rem',
                           padding: '0.4rem 0',
                           fontSize: '0.82rem', color: 'var(--text-secondary)',
-                          borderBottom: '1px solid rgba(255,255,255,0.04)'
+                          borderBottom: '1px solid var(--border)'
                         }}>
                           <span>{icon}</span>
                           <span style={{ color: 'var(--text-muted)' }}>{label}:</span>
@@ -372,7 +372,7 @@ export default function StudentLayout({ children }) {
                       ))}
 
                       {/* Achievements display */}
-                      <div style={{ marginTop: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '0.75rem' }}>
+                      <div style={{ marginTop: '0.75rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>
                           🏆 Achievements ({earnedBadges.length})
                         </div>
