@@ -10,6 +10,8 @@ import SectionTimer, { formatSectionTime } from '../components/SectionTimer'
 
 const SECTION_LABELS = {
   abacus:            '🧮 Abacus',
+  bead_fun:          '🧮 Bead Fun',
+  activity:          '⚡ Activity',
   visual:            '👁 Visual',
   multiplication:    '✖ Multiplication',
   division:          '➗ Division',

@@ -7,8 +7,8 @@ import pool from '../db.js'
 
 // ── Section definitions per level ─────────────────────────────────────────────
 export const LEVEL_SECTIONS = {
-  beginner: ['abacus'],
-  l1: ['abacus'],
+  beginner: ['abacus', 'bead_fun', 'activity'],
+  l1: ['abacus', 'bead_fun', 'activity'],
   l2: ['abacus', 'visual', 'tables'],
   l3: ['abacus', 'visual', 'multiplication', 'two_steps'],
   l4: ['abacus', 'visual', 'multiplication', 'division', 'form_the_question'],
@@ -22,7 +22,7 @@ export const LEVEL_SECTIONS = {
 
 // Teacher-input sections that come from teacher_questions table, not question_bank
 export const TEACHER_INPUT_SECTIONS = new Set([
-  'form_the_question', 'cracking', 'bodmas', 'power_exercise'
+  'form_the_question', 'cracking', 'bodmas', 'power_exercise', 'bead_fun', 'activity'
 ])
 
 // ── Every-5th-day check ────────────────────────────────────────────────────────
@@ -118,6 +118,8 @@ export async function getSectionsForLevelAsync(level, dayNumber) {
 // ── Section display labels ─────────────────────────────────────────────────────
 export const SECTION_LABELS = {
   abacus:            '🧮 Abacus',
+  bead_fun:          '🧮 Bead Fun',
+  activity:          '⚡ Activity',
   visual:            '👁 Visual',
   multiplication:    '✖ Multiplication',
   division:          '➗ Division',

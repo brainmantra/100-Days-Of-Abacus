@@ -267,17 +267,18 @@ router.get('/:id/progress/:dayNumber/sections', async (req, res) => {
           }
         }
 
-        let labelVal = SECTION_LABELS[sec] || sec
-        if (!SECTION_LABELS[sec]) {
-          const tq = await getTeacherQuestion(level, 0, sec)
-          if (tq && tq.question) {
-            try {
-              const parsed = typeof tq.question === 'string' ? JSON.parse(tq.question) : tq.question
-              if (parsed && parsed.title) {
-                labelVal = parsed.title
-              }
-            } catch (e) {}
-          }
+        let labelVal = null
+        const tq = await getTeacherQuestion(level, 0, sec)
+        if (tq && tq.question) {
+          try {
+            const parsed = typeof tq.question === 'string' ? JSON.parse(tq.question) : tq.question
+            if (parsed && parsed.title) {
+              labelVal = parsed.title
+            }
+          } catch (e) {}
+        }
+        if (!labelVal) {
+          labelVal = SECTION_LABELS[sec] || sec
         }
 
         result.push({
@@ -337,17 +338,18 @@ router.get('/:id/progress/:dayNumber/sections', async (req, res) => {
         }
       }
 
-      let labelVal = SECTION_LABELS[sec] || sec
-      if (!SECTION_LABELS[sec]) {
-        const tq = await getTeacherQuestion(level, dayNumber, sec)
-        if (tq && tq.question) {
-          try {
-            const parsed = typeof tq.question === 'string' ? JSON.parse(tq.question) : tq.question
-            if (parsed && parsed.title) {
-              labelVal = parsed.title
-            }
-          } catch (e) {}
-        }
+      let labelVal = null
+      const tq = await getTeacherQuestion(level, dayNumber, sec)
+      if (tq && tq.question) {
+        try {
+          const parsed = typeof tq.question === 'string' ? JSON.parse(tq.question) : tq.question
+          if (parsed && parsed.title) {
+            labelVal = parsed.title
+          }
+        } catch (e) {}
+      }
+      if (!labelVal) {
+        labelVal = SECTION_LABELS[sec] || sec
       }
 
       result.push({
@@ -578,8 +580,19 @@ router.post('/:id/progress/:dayNumber/sections/:section/submit', async (req, res
       [studentId, dayNumber]
     )
     const sectionData = dayRows[0]?.section_data || {}
+    let labelVal = SECTION_LABELS[section] || section
+    const tq = await getTeacherQuestion(level, dayNumber, section)
+    if (tq && tq.question) {
+      try {
+        const parsed = typeof tq.question === 'string' ? JSON.parse(tq.question) : tq.question
+        if (parsed && parsed.title) {
+          labelVal = parsed.title
+        }
+      } catch (e) {}
+    }
     sectionData[section] = {
       status: 'done',
+      label: labelVal,
       questionCount: totalQuestions,
       correct,
       marks,

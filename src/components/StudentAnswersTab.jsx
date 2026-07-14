@@ -13,6 +13,8 @@ const LEVEL_LABELS = {
 
 const SECTION_LABELS = {
   abacus: '🧮 Abacus',
+  bead_fun: '🧮 Bead Fun',
+  activity: '⚡ Activity',
   visual: '👁 Visual',
   multiplication: '✖ Multiplication',
   division: '➗ Division',

@@ -861,7 +861,7 @@ function QuestionBankTab() {
         </select>
         <select value={section} onChange={e => setSection(e.target.value)} style={{ width: 200 }}>
           <option value="">All Sections</option>
-          {['abacus','visual','multiplication','division','tables','form_the_question','teacher_input','teacher_day'].map(s => (
+          {['abacus','bead_fun','activity','visual','multiplication','division','tables','form_the_question','teacher_input','teacher_day'].map(s => (
             <option key={s} value={s}>{s}</option>
           ))}
         </select>

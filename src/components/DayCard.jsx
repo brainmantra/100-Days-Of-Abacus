@@ -5,7 +5,8 @@ import { useAuth } from '../context/AuthContext'
 import './DayCard.css'
 
 const LEVEL_SECTIONS = {
-  l1: ['abacus', 'teacher_input'],
+  beginner: ['abacus', 'bead_fun', 'activity'],
+  l1: ['abacus', 'bead_fun', 'activity'],
   l2: ['abacus', 'visual', 'tables'],
   l3: ['abacus', 'visual', 'multiplication', 'two_steps'],
   l4: ['abacus', 'visual', 'multiplication', 'division', 'form_the_question'],
@@ -14,10 +15,13 @@ const LEVEL_SECTIONS = {
   l7: ['abacus', 'visual', 'multiplication', 'division', 'two_steps'],
   l8: ['abacus', 'visual', 'multiplication', 'division', 'cracking'],
   alumni: ['abacus', 'visual', 'multiplication', 'division', 'cracking'],
+  gm: ['abacus', 'visual', 'multiplication', 'division', 'cracking'],
 }
 
 const SECTION_LABELS = {
   abacus: '🧮 Abacus Section',
+  bead_fun: '🧮 Bead Fun',
+  activity: '⚡ Activity',
   visual: '👁 Visual Mental Math',
   multiplication: '✖ Multiplication sums',
   division: '➗ Division sums',
@@ -33,6 +37,8 @@ const SECTION_LABELS = {
 
 const SECTION_SHORT_LABELS = {
   abacus: '🧮 Abacus',
+  bead_fun: '🧮 Bead Fun',
+  activity: '⚡ Activity',
   visual: '👁 Visual',
   multiplication: '✖ Mul',
   division: '➗ Div',

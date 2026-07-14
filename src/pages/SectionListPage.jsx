@@ -8,6 +8,8 @@ import toast from 'react-hot-toast'
 
 const SECTION_ICONS = {
   abacus:            '🧮',
+  bead_fun:          '🧮',
+  activity:          '⚡',
   visual:            '👁',
   multiplication:    '✖',
   division:          '➗',
@@ -23,6 +25,8 @@ const SECTION_ICONS = {
 
 const SECTION_LABELS = {
   abacus:            '🧮 Abacus',
+  bead_fun:          '🧮 Bead Fun',
+  activity:          '⚡ Activity',
   visual:            '👁 Visual',
   multiplication:    '✖ Multiplication',
   division:          '➗ Division',

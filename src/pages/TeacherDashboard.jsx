@@ -335,6 +335,28 @@ export default function TeacherDashboard() {
 
   const getActiveSections = () => {
     const std = getTeacherSectionsForLevel(qLevel, qDay)
+    
+    // Create a map of saved section titles from savedQuestions
+    const savedTitlesMap = {}
+    savedQuestions.forEach(q => {
+      if (q.level === qLevel && q.day_number === parseInt(qDay, 10)) {
+        try {
+          const parsed = JSON.parse(q.question)
+          if (parsed && parsed.title) {
+            savedTitlesMap[q.section] = parsed.title
+          }
+        } catch(e) {}
+      }
+    })
+
+    // Map std sections to use saved title if exists
+    const stdWithTitles = std.map(s => {
+      return {
+        value: s.value,
+        label: savedTitlesMap[s.value] || s.label
+      }
+    })
+
     const customSecs = []
     
     // Merge database discovered custom sections
@@ -343,13 +365,7 @@ export default function TeacherDashboard() {
         const isStd = std.some(s => s.value === q.section)
         const isAlreadyAdded = customSecs.some(s => s.value === q.section)
         if (!isStd && !isAlreadyAdded) {
-          let label = q.section
-          try {
-            const parsed = JSON.parse(q.question)
-            if (parsed && parsed.title) {
-              label = parsed.title
-            }
-          } catch(e) {}
+          const label = savedTitlesMap[q.section] || q.section
           customSecs.push({ value: q.section, label })
         }
       }
@@ -364,7 +380,7 @@ export default function TeacherDashboard() {
       }
     })
 
-    return [...std, ...customSecs]
+    return [...stdWithTitles, ...customSecs]
   }
 
   const handleRenameSection = async () => {
@@ -849,6 +865,31 @@ export default function TeacherDashboard() {
             {/* Google Forms Clone Designer */}
             <div style={{ maxWidth: '780px', margin: '0 auto', fontFamily: 'var(--font-sans)' }}>
               
+              {/* Form Title & Description Card */}
+              <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem', background: 'var(--bg-card)', borderTop: '8px solid var(--teacher-primary)', borderRadius: '8px', boxShadow: 'var(--shadow-sm)' }}>
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label className="form-label" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Section Title (Renames section displayed to student)</label>
+                  <input 
+                    type="text" 
+                    className="input-premium"
+                    value={formTitle}
+                    onChange={e => setFormTitle(e.target.value)}
+                    placeholder="e.g. Bead Fun"
+                    style={{ width: '100%', fontSize: '1.4rem', fontWeight: 'bold', padding: '0.5rem 0.75rem' }}
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Section Instructions / Description</label>
+                  <textarea 
+                    rows={2}
+                    className="input-premium"
+                    value={formDescription}
+                    onChange={e => setFormDescription(e.target.value)}
+                    placeholder="Enter description..."
+                    style={{ width: '100%', fontSize: '0.95rem', padding: '0.5rem 0.75rem', resize: 'vertical' }}
+                  />
+                </div>
+              </div>
 
               {/* Format instruction (legacy support) */}
               <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem', background: 'var(--bg-card)', display: 'flex', gap: '1rem', alignItems: 'center' }}>

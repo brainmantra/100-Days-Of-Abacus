@@ -6,7 +6,10 @@ import api from '../utils/api'
 import confetti from 'canvas-confetti'
 
 const SECTION_LABELS = {
-  abacus: '🧮 Abacus', visual: '👁 Visual',
+  abacus: '🧮 Abacus', 
+  bead_fun: '🧮 Bead Fun',
+  activity: '⚡ Activity',
+  visual: '👁 Visual',
   multiplication: '✖ Multiplication', division: '➗ Division',
   tables: '📋 Tables', form_the_question: '✏ Form The Question',
   teacher_input: '👨‍🏫 Teacher Section', teacher_day: '🌟 Special Day',
@@ -157,7 +160,7 @@ export default function PerformanceReportPage() {
                     const secAcc = sd.questionCount > 0 ? Math.round((sd.correct / sd.questionCount) * 100) : 0
                     return (
                       <tr key={sec}>
-                        <td style={{ fontWeight: 600 }}>{SECTION_LABELS[sec] || sec}</td>
+                        <td style={{ fontWeight: 600 }}>{sd.label || SECTION_LABELS[sec] || sec}</td>
                         <td>{sd.questionCount ?? 0}</td>
                         <td>
                           <span style={{ color: 'var(--success)', fontWeight: 600 }}>{sd.correct ?? 0}</span>
@@ -183,10 +186,11 @@ export default function PerformanceReportPage() {
         {sections.map(sec => {
           const secResponses = bySection[sec] || []
           if (!secResponses.length) return null
+          const sd = sectionData[sec] || {}
           return (
             <div key={sec} style={{ marginBottom: '2rem' }}>
               <h3 style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
-                {SECTION_LABELS[sec] || sec}
+                {sd.label || SECTION_LABELS[sec] || sec}
               </h3>
               {secResponses.map((r, i) => (
                 <div key={i} className={`review-item review-item--${r.is_correct === true ? 'correct' : r.is_correct === false ? 'incorrect' : 'pending'}`} style={r.is_correct === null ? { borderLeft: '4px solid var(--warning)', background: 'rgba(245,200,66,0.06)' } : {}}>
