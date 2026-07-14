@@ -700,9 +700,18 @@ select option { background: var(--bg-elevated); }
   flex-direction: column;
   justify-content: space-between;
   box-sizing: border-box;
+  /* Collapse via transform — driven by data-sidebar on parent */
+  transform: translateX(0);
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), box-shadow 0.3s ease;
 }
 .light-theme .admin-sidebar {
   box-shadow: 4px 0 24px rgba(120,60,10,0.07), 1px 0 0 rgba(255,122,0,0.06);
+}
+
+/* Collapsed state — sidebar slides off-screen */
+[data-sidebar='closed'] .admin-sidebar {
+  transform: translateX(-240px);
+  box-shadow: none;
 }
 .admin-sidebar__logo {
   padding: 0 var(--space-6) var(--space-4);
@@ -735,7 +744,16 @@ select option { background: var(--bg-elevated); }
   border-right: 3px solid var(--primary);
   font-weight: 600;
 }
-.admin-main { margin-left: 240px; flex: 1; padding: var(--space-8); min-height: 100vh; }
+.admin-main {
+  margin-left: 240px;
+  flex: 1;
+  padding: var(--space-8);
+  min-height: 100vh;
+  transition: margin-left 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+[data-sidebar='closed'] .admin-main {
+  margin-left: 0;
+}
 
 /* ── Teacher Sidebar ───────────────────────────────────────────────────────── */
 .teacher-nav-item.active {
@@ -1119,9 +1137,14 @@ select option { background: var(--bg-elevated); }
 }
 
 /* ── Responsive ────────────────────────────────────────────────────────────── */
-@media (max-width: 768px) {
-  .admin-sidebar { display: none; }
+@media (max-width: 991px) {
+  /* On mobile: sidebar is an overlay, closed by default */
+  .admin-layout:not([data-sidebar='open']) .admin-sidebar {
+    transform: translateX(-240px);
+    box-shadow: none;
+  }
   .admin-main    { margin-left: 0; padding: var(--space-4); }
+  [data-sidebar='open'] .admin-main { margin-left: 0; }
   .form-row      { flex-direction: column; }
   .report-grid   { grid-template-columns: 1fr; }
 }
