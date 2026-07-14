@@ -74,14 +74,14 @@ export default function DayCard({ dayNumber, registrationDate, dayRecord, isDemo
     _expectedSecs.push('power_exercise')
   }
   const _sectionData = dayRecord?.section_data || {}
-  const allSectionsDone = !isDemo && _expectedSecs.length > 0 &&
+  const allSectionsDone = _expectedSecs.length > 0 &&
     _expectedSecs.every(s => _sectionData[s]?.status === 'done')
 
   let status = 'future'
-  if (isDemo) {
-    status = 'today'
-  } else if (dayRecord?.completed || allSectionsDone) {
+  if (dayRecord?.completed || allSectionsDone) {
     status = 'completed'
+  } else if (isDemo) {
+    status = 'today'
   } else if (dayRecord?.opened && today) {
     status = 'opened'
   } else if (today) {

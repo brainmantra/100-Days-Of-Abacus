@@ -592,13 +592,6 @@ export default function SectionAttemptPage() {
 
   const submitSection = async (finalResponses) => {
     setPhase('submitting')
-    // Demo day (day 0) — skip saving to backend; just show confetti
-    if (dayNum === 0) {
-      confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } })
-      playFanfare()
-      setPhase('done')
-      return
-    }
     try {
       await api.post(`/students/${student.id}/progress/${dayNum}/sections/${section}/submit`, {
         responses: finalResponses,

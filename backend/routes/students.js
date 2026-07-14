@@ -275,10 +275,7 @@ router.post('/:id/progress/:dayNumber/open', async (req, res) => {
       return res.status(403).json({ message: 'This day is not currently active.' })
     }
 
-    // Day 0 is Demo Day — always available, never written to DB
-    if (dayNumber === 0) {
-      return res.status(200).json({ message: 'Demo day opened.' })
-    }
+
 
     const { rows: existing } = await pool.query(
       `SELECT * FROM day_records WHERE student_id = $1 AND day_number = $2`,
@@ -317,77 +314,7 @@ router.get('/:id/progress/:dayNumber/sections', async (req, res) => {
     const level = normalizeStudentLevel(student.level) || student.level
     const sections = await getSectionsForLevelAsync(level, Math.max(1, dayNumber))
 
-    // Demo Day (day 0) — return sections with no DB state; never mark as completed
-    if (dayNumber === 0) {
-      const result = []
-      for (const sec of sections) {
-        const isCustom = !LEVEL_SECTIONS[level]?.includes(sec) && sec !== 'power_exercise'
-        const isTeacherInput = TEACHER_INPUT_SECTIONS.has(sec) || isCustom
 
-        let ready = false
-        if (sec === 'power_exercise') {
-          ready = true
-        } else if (isTeacherInput) {
-          const tq = await getTeacherQuestion(level, 0, sec)
-          ready = !!tq
-        } else {
-          ready = true
-        }
-        let countVal = 5;
-        if (sec === 'power_exercise') {
-          countVal = 10;
-        } else if (isTeacherInput) {
-          countVal = 1;
-          const tq = await getTeacherQuestion(level, 0, sec)
-          ready = !!tq
-          if (tq && tq.question) {
-            try {
-              const parsed = typeof tq.question === 'string' ? JSON.parse(tq.question) : tq.question
-              if (parsed && typeof parsed === 'object' && Array.isArray(parsed.items)) {
-                const qItems = parsed.items.filter(item => item.type === 'question')
-                if (qItems.length > 0) {
-                  countVal = qItems.length
-                }
-              }
-            } catch (e) {}
-          }
-        }
-
-        let labelVal = null
-        const tq = await getTeacherQuestion(level, 0, sec)
-        if (tq && tq.question) {
-          try {
-            const parsed = typeof tq.question === 'string' ? JSON.parse(tq.question) : tq.question
-            if (parsed && parsed.title && !parsed.title.startsWith('Daily Challenge - Day') && parsed.title !== 'Abacus Daily Challenge') {
-              labelVal = parsed.title
-            }
-          } catch (e) {}
-        }
-        if (!labelVal) {
-          labelVal = SECTION_LABELS[sec] || sec
-        }
-
-        result.push({
-          section: sec,
-          label: labelVal,
-          status: 'not_started',
-          questionCount: countVal,
-          timeTaken: 0,
-          marks: 0,
-          ready,
-          isDemo: true,
-        })
-      }
-      return res.json({
-        sections: result.filter(s => s.ready),
-        paperCompleted: false,
-        isTeacherDay: false,
-        teacherDayReady: false,
-        level,
-        dayNumber: 0,
-        isDemo: true,
-      })
-    }
 
     // Fetch completion metadata from day_records.section_data
     const { rows: dayRows } = await pool.query(
@@ -456,6 +383,7 @@ router.get('/:id/progress/:dayNumber/sections', async (req, res) => {
       teacherDayReady: true,
       level,
       dayNumber,
+      isDemo: dayNumber === 0,
     })
   } catch (err) {
     console.error('[sections]', err)

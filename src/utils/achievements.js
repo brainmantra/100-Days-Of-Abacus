@@ -6,25 +6,25 @@ export function calculateAchievements(days = [], streak = 0, longestStreak = 0) 
   let day1Completed = false
   
   days.forEach(d => {
+    const dayN = parseInt(d.day_number, 10)
     if (d.completed) {
-      const dayN = parseInt(d.day_number, 10)
       if (dayN === 0) demoCompleted = true
       if (dayN === 1) day1Completed = true
       if (parseFloat(d.accuracy || 0) === 100) perfectDays++
       if (parseFloat(d.accuracy || 0) >= 90) highAccuracyDays++
-      
-      if (d.section_data) {
-        try {
-          const parsed = typeof d.section_data === 'string' ? JSON.parse(d.section_data) : d.section_data
-          if (parsed && typeof parsed === 'object') {
-            Object.values(parsed).forEach(sec => {
-              if (sec && typeof sec === 'object') {
-                totalCorrect += parseInt(sec.correct || 0, 10)
-              }
-            })
-          }
-        } catch (e) {}
-      }
+    }
+    
+    if (d.section_data) {
+      try {
+        const parsed = typeof d.section_data === 'string' ? JSON.parse(d.section_data) : d.section_data
+        if (parsed && typeof parsed === 'object') {
+          Object.values(parsed).forEach(sec => {
+            if (sec && typeof sec === 'object') {
+              totalCorrect += parseInt(sec.correct || 0, 10)
+            }
+          })
+        }
+      } catch (e) {}
     }
   })
   

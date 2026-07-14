@@ -32,11 +32,27 @@ export default function ChallengePage() {
   const maxRenderDay = Math.min(currentDay, 100)
 
   const stats = useMemo(() => {
-    const completedDaysList = days.filter(d => d.completed)
-    const totalAccuracy = completedDaysList.reduce((acc, d) => acc + parseFloat(d.accuracy || 0), 0)
-    const avgAccuracy = completedDaysList.length > 0 ? Math.round(totalAccuracy / completedDaysList.length) : 0
-    
-    const totalTime = completedDaysList.reduce((acc, d) => acc + (d.time_taken_seconds || 0), 0)
+    let totalTime = 0
+    let totalQs = 0
+    let totalCorrect = 0
+
+    days.forEach(d => {
+      if (d.section_data) {
+        try {
+          const sd = typeof d.section_data === 'string' ? JSON.parse(d.section_data) : d.section_data
+          Object.values(sd).forEach(sec => {
+            if (sec && sec.status === 'done') {
+              totalTime += (sec.timeTaken || 0)
+              totalCorrect += (sec.correct || 0)
+              totalQs += (sec.questionCount || 0)
+            }
+          })
+        } catch (e) {}
+      }
+    })
+
+    const completedDaysList = days.filter(d => d.completed && d.day_number > 0)
+    const avgAccuracy = totalQs > 0 ? Math.round((totalCorrect / totalQs) * 100) : 0
     const avgTime = completedDaysList.length > 0 ? Math.round(totalTime / completedDaysList.length) : 0
 
     return {
