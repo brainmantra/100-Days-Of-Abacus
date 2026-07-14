@@ -107,7 +107,7 @@ export default function LoginPage() {
         {/* Login form panel */}
         <div className="login-form-panel animate-pop">
           <div className="login-form-header">
-            <h2 className="login-form-title">Unified Login Portal</h2>
+            <h2 className="login-form-title">Login Portal</h2>
             <p className="login-form-subtitle">
               Enter your login ID and password to access your dashboard.
             </p>
