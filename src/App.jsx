@@ -14,7 +14,6 @@ import PerformanceReportPage from './pages/PerformanceReportPage'
 import LeaderboardPage     from './pages/LeaderboardPage'
 import NotFoundPage        from './pages/NotFoundPage'
 import StudentProfilePage  from './pages/StudentProfilePage'
-import XPShopPage          from './pages/XPShopPage'
 
 // Staff pages
 import AdminLogin          from './pages/AdminLogin'
@@ -43,7 +42,6 @@ function AppRoutes() {
       <Route path="/welcome"    element={<ProtectedRoute><WelcomePage /></ProtectedRoute>} />
       <Route path="/challenge"  element={<ProtectedRoute><ChallengePage /></ProtectedRoute>} />
       <Route path="/courses"    element={<ProtectedRoute><CoursesPage /></ProtectedRoute>} />
-      <Route path="/shop"       element={<ProtectedRoute><XPShopPage /></ProtectedRoute>} />
 
       {/* Day → Section List → Section Attempt → Report */}
       <Route path="/challenge/day/:dayNumber/sections"                    element={<ProtectedRoute><SectionListPage /></ProtectedRoute>} />

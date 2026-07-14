@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import StudentLayout from '../components/StudentLayout'
 import api from '../utils/api'
 import confetti from 'canvas-confetti'
+import toast from 'react-hot-toast'
 
 const SECTION_LABELS = {
   abacus: '🧮 Abacus', 

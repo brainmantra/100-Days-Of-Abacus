@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import StudentAnswersTab from '../components/StudentAnswersTab'
 import * as XLSX from 'xlsx'
-
+import { calculateAchievements } from '../utils/achievements'
 
 const LEVELS = ['beginner','l1','l2','l3','l4','l5','l6','l7','l8','alumni','gm']
 const LEVEL_LABELS = {
@@ -1567,8 +1567,13 @@ export default function TeacherDashboard() {
         )}
 
         {/* STUDENT PROGRESS */}
-        {tab === 'students' && selectedStudent && (
-          <div className="animate-slide-up">
+        {tab === 'students' && selectedStudent && (() => {
+          const completedCount = selectedDays.filter(d => d.completed).length
+          const achievements = calculateAchievements(completedCount, selectedStudent.streak, selectedStudent.longest_streak || selectedStudent.streak)
+          const earnedBadges = achievements.filter(b => b.earned)
+
+          return (
+            <div className="animate-slide-up">
             <button className="btn btn-ghost btn-sm" style={{ marginBottom: '1.5rem' }} onClick={() => setSelectedStudent(null)}>
               ← Back to All Students
             </button>
@@ -1652,10 +1657,36 @@ export default function TeacherDashboard() {
                 ) : (
                   <p style={{ color: 'var(--text-muted)' }}>No completed days yet for a growth chart.</p>
                 )}
+                
+                {/* Earned Badges */}
+                {earnedBadges.length > 0 && (
+                  <div style={{ marginTop: '2rem' }}>
+                    <h3 style={{ marginBottom: '1rem', fontSize: '1rem', color: 'var(--text-secondary)' }}>🏆 Earned Badges ({earnedBadges.length})</h3>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                      {earnedBadges.map(b => (
+                        <div
+                          key={b.id}
+                          title={b.desc}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '0.5rem',
+                            background: 'rgba(255,122,0,0.06)', border: '1px solid rgba(255,122,0,0.25)',
+                            borderRadius: 12, padding: '0.5rem 0.9rem',
+                            boxShadow: '0 4px 16px rgba(255,122,0,0.1)',
+                          }}
+                        >
+                          <span style={{ fontSize: '1.3rem', filter: 'drop-shadow(0 0 6px rgba(255,122,0,0.5))' }}>{b.icon}</span>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--primary-bright)' }}>{b.title}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
               </div>
             )}
           </div>
-        )}
+          )
+        })()}
 
         {tab === 'students' && !selectedStudent && (
           <div className="animate-slide-up">
