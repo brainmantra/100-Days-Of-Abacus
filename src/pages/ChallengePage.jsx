@@ -54,6 +54,17 @@ export default function ChallengePage() {
       }))
   }, [days])
 
+  const displayChartData = useMemo(() => {
+    if (chartData.length > 0) return chartData
+    return [
+      { day: 'Day 1', Accuracy: 0, Time: 0 },
+      { day: 'Day 2', Accuracy: 0, Time: 0 },
+      { day: 'Day 3', Accuracy: 0, Time: 0 },
+      { day: 'Day 4', Accuracy: 0, Time: 0 },
+      { day: 'Day 5', Accuracy: 0, Time: 0 },
+    ]
+  }, [chartData])
+
   useEffect(() => {
     let mounted = true
     async function load() {
@@ -179,43 +190,43 @@ export default function ChallengePage() {
           </div>
 
           {/* Charts Row */}
-          {chartData.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-              <div className="card" style={{ padding: '1.5rem', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
-                <h3 style={{ marginBottom: '1rem', fontSize: '1rem', color: 'var(--text-primary)' }}>Accuracy Trend (%)</h3>
-                <div style={{ width: '100%', height: 220 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                      <XAxis dataKey="day" stroke="var(--text-secondary)" fontSize={10} />
-                      <YAxis domain={[0, 100]} stroke="var(--text-secondary)" fontSize={10} />
-                      <Tooltip contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} />
-                      <Line type="monotone" dataKey="Accuracy" stroke="var(--primary-light)" strokeWidth={2} activeDot={{ r: 6 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+            <div className="card" style={{ padding: '1.5rem', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
+              <h3 style={{ marginBottom: '0.25rem', fontSize: '1.1rem', color: 'var(--text-primary)', fontWeight: 600 }}>Accuracy Trend (%)</h3>
+              {chartData.length === 0 && (
+                <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Complete days to populate actual stats (showing placeholder)</p>
+              )}
+              <div style={{ width: '100%', height: 220, marginTop: '0.5rem' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={displayChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="day" stroke="var(--text-secondary)" fontSize={10} />
+                    <YAxis domain={[0, 100]} stroke="var(--text-secondary)" fontSize={10} />
+                    <Tooltip contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} />
+                    <Line type="monotone" dataKey="Accuracy" stroke="var(--primary-light)" strokeWidth={2} activeDot={{ r: 6 }} />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
+            </div>
 
-              <div className="card" style={{ padding: '1.5rem', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
-                <h3 style={{ marginBottom: '1rem', fontSize: '1rem', color: 'var(--text-primary)' }}>Time Spent Trend (Minutes)</h3>
-                <div style={{ width: '100%', height: 220 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                      <XAxis dataKey="day" stroke="var(--text-secondary)" fontSize={10} />
-                      <YAxis stroke="var(--text-secondary)" fontSize={10} />
-                      <Tooltip contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} />
-                      <Line type="monotone" dataKey="Time" stroke="var(--success)" strokeWidth={2} activeDot={{ r: 6 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
+            <div className="card" style={{ padding: '1.5rem', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
+              <h3 style={{ marginBottom: '0.25rem', fontSize: '1.1rem', color: 'var(--text-primary)', fontWeight: 600 }}>Time Spent Trend (Minutes)</h3>
+              {chartData.length === 0 && (
+                <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Complete days to populate actual stats (showing placeholder)</p>
+              )}
+              <div style={{ width: '100%', height: 220, marginTop: '0.5rem' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={displayChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="day" stroke="var(--text-secondary)" fontSize={10} />
+                    <YAxis stroke="var(--text-secondary)" fontSize={10} />
+                    <Tooltip contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }} />
+                    <Line type="monotone" dataKey="Time" stroke="var(--accent-teal)" strokeWidth={2} activeDot={{ r: 6 }} />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </div>
-          ) : (
-            <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-              Complete days to populate dashboard charts!
-            </div>
-          )}
+          </div>
 
           {/* Recent Day Completions Table */}
           <div className="card" style={{ padding: '1.5rem', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>

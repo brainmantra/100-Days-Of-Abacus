@@ -82,17 +82,17 @@ export default function StudentLayout({ children }) {
       {/* Sidebar container */}
       <aside 
         className="admin-sidebar student-sidebar"
-        style={{ transition: 'transform 0.3s ease, width 0.3s ease', display: 'block' }}
+        style={{ transition: 'transform 0.3s ease, width 0.3s ease', display: 'flex', flexDirection: 'column', height: '100vh', justifyContent: 'space-between', boxSizing: 'border-box' }}
       >
-        {/* Sidebar Logo */}
-        <div className="admin-sidebar__logo" style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', alignItems: 'flex-start', marginBottom: '1rem' }}>
-          <img src="/brand-logo.jpeg" alt="Brain Mantra Logo" style={{ width: 48, height: 48, borderRadius: 12, marginBottom: 8 }} />
-          <h2 style={{ fontSize: '0.95rem', lineHeight: 1.2 }}>Brain Mantra</h2>
-          <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 1 }}>Student Portal</p>
-        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', overflow: 'hidden' }}>
+          {/* Sidebar Logo */}
+          <div className="admin-sidebar__logo" style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', alignItems: 'flex-start', marginBottom: '0.5rem', width: '100%' }}>
+            <img src="/brand-logo.jpeg" alt="Brain Mantra Logo" style={{ width: 40, height: 40, borderRadius: 10, marginBottom: 4 }} />
+            <h2 style={{ fontSize: '0.95rem', lineHeight: 1.2 }}>Brain Mantra</h2>
+            <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 1 }}>Student Portal</p>
+          </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100% - 90px)', justifyContent: 'space-between' }}>
-          <nav>
+          <div style={{ display: 'flex', flexDirection: 'column', width: '100%', overflowY: 'auto' }}>
             {/* Nav section label */}
             <div style={{ padding: '0.5rem 1.5rem 0.25rem', fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Navigation</div>
 
@@ -115,25 +115,25 @@ export default function StudentLayout({ children }) {
               <span>My Courses</span>
               {isActive('/courses') && <span style={{ marginLeft: 'auto', width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)', boxShadow: '0 0 8px var(--primary)' }} />}
             </button>
-          </nav>
-
-          <div style={{ padding: '0 0.9rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingBottom: '1rem' }}>
-            <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,122,0,0.3), transparent)', marginBottom: '0.5rem' }} />
-            <button 
-              className="btn btn-primary btn-block btn-sm"
-              onClick={handleInstall}
-              style={{ justifyContent: 'center', fontSize: '0.8rem', borderRadius: 10 }}
-            >
-              📲 Install App
-            </button>
-            <button 
-              className="btn btn-ghost btn-block btn-sm"
-              onClick={handleLogoutClick}
-              style={{ justifyContent: 'center', color: 'var(--text-secondary)', borderRadius: 10 }}
-            >
-              🚪 Sign Out
-            </button>
           </div>
+        </div>
+
+        <div style={{ padding: '0 0.9rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingBottom: '1rem', width: '100%' }}>
+          <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,122,0,0.3), transparent)', marginBottom: '0.5rem' }} />
+          <button 
+            className="btn btn-primary btn-block btn-sm"
+            onClick={handleInstall}
+            style={{ justifyContent: 'center', fontSize: '0.8rem', borderRadius: 10 }}
+          >
+            📲 Install App
+          </button>
+          <button 
+            className="btn btn-ghost btn-block btn-sm"
+            onClick={handleLogoutClick}
+            style={{ justifyContent: 'center', color: 'var(--text-secondary)', borderRadius: 10 }}
+          >
+            🚪 Sign Out
+          </button>
         </div>
       </aside>
 

@@ -314,6 +314,7 @@ export default function TeacherDashboard() {
   const [activity, setActivity] = useState([])
   const [fifthDays, setFifthDays] = useState([])
   const [loading, setLoading] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   // Question Editor state
   const [qLevel, setQLevel] = useState('')
@@ -712,30 +713,93 @@ export default function TeacherDashboard() {
   ]
 
   return (
-    <div className="admin-layout">
+    <div className="admin-layout" data-sidebar={sidebarOpen ? 'open' : 'closed'} style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      
+      {/* Sidebar Overlay (Mobile only) */}
+      {sidebarOpen && typeof window !== 'undefined' && window.innerWidth <= 991 && (
+        <div 
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+            background: 'rgba(0,0,0,0.5)', zIndex: 40, backdropFilter: 'blur(3px)'
+          }} 
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="admin-sidebar">
-        <div className="admin-sidebar__logo" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem' }}>
-          <img src="/brand-logo.jpeg" alt="Brain Mantra Logo" style={{ width: 42, height: 42, borderRadius: 10, marginBottom: 4 }} />
-          <h2 style={{ color: 'var(--teacher-primary)' }}>Teacher Portal</h2>
-          <p>{teacher?.name}</p>
-          <p style={{ fontSize: '0.7rem', marginTop: 2 }}>{teacher?.assigned_levels?.map(l => LEVEL_LABELS[l]).join(', ')}</p>
+      <aside className="admin-sidebar" style={{ transition: 'transform 0.3s ease, width 0.3s ease' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', overflow: 'hidden' }}>
+          <div className="admin-sidebar__logo" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.25rem', width: '100%' }}>
+            <img src="/brand-logo.jpeg" alt="Brain Mantra Logo" style={{ width: 40, height: 40, borderRadius: 10, marginBottom: 4 }} />
+            <h2 style={{ color: 'var(--teacher-primary)', fontSize: '0.95rem' }}>Teacher Portal</h2>
+            <p>{teacher?.name}</p>
+            <p style={{ fontSize: '0.7rem', marginTop: 2 }}>{teacher?.assigned_levels?.map(l => LEVEL_LABELS[l]).join(', ')}</p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', width: '100%', overflowY: 'auto' }}>
+            {NAV.map(n => (
+              <button key={n.id}
+                className={`admin-nav-item teacher-nav-item ${tab === n.id ? 'active' : ''}`}
+                onClick={() => { setTab(n.id); if (window.innerWidth <= 991) setSidebarOpen(false); }}
+              >
+                <span>{n.icon}</span> {n.label}
+              </button>
+            ))}
+          </div>
         </div>
-        {NAV.map(n => (
-          <button key={n.id}
-            className={`admin-nav-item teacher-nav-item ${tab === n.id ? 'active' : ''}`}
-            onClick={() => setTab(n.id)}
-          >
-            <span>{n.icon}</span> {n.label}
-          </button>
-        ))}
-        <div style={{ position: 'absolute', bottom: '1.5rem', width: '100%', padding: '0 1rem' }}>
-          <button className="btn btn-ghost btn-sm btn-block" onClick={handleLogout}>Sign Out</button>
+        <div style={{ width: '100%', padding: '0.5rem 1rem 0' }}>
+          <button className="btn btn-ghost btn-sm btn-block" onClick={handleLogout} style={{ justifyContent: 'center' }}>Sign Out</button>
         </div>
       </aside>
 
       {/* Main */}
-      <main className="admin-main">
+      <main className="admin-main" style={{ transition: 'margin-left 0.3s ease', display: 'flex', flexDirection: 'column' }}>
+        {/* Portal Header */}
+        <header style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '2rem',
+          padding: '0.75rem 1rem',
+          background: 'rgba(12,14,21,0.7)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderRadius: 16,
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderTop: '1px solid rgba(255,255,255,0.1)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.05) inset',
+          position: 'sticky',
+          top: '1rem',
+          zIndex: 30,
+        }}>
+          <button 
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            style={{
+              background: sidebarOpen ? 'rgba(0,180,216,0.12)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${sidebarOpen ? 'rgba(0,180,216,0.3)' : 'rgba(255,255,255,0.08)'}`,
+              color: sidebarOpen ? 'var(--teacher-primary)' : 'var(--text-secondary)',
+              fontSize: '1.1rem', cursor: 'pointer',
+              width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '10px', transition: 'all 0.2s ease',
+              boxShadow: sidebarOpen ? '0 0 12px rgba(0,180,216,0.2)' : 'none'
+            }}
+          >
+            {sidebarOpen ? '✕' : '☰'}
+          </button>
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+            <span style={{
+              fontFamily: 'var(--font-display)',
+              fontWeight: 700,
+              fontSize: '0.95rem',
+              background: 'linear-gradient(135deg, #48cae4, var(--teacher-primary))',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              filter: 'drop-shadow(0 0 8px rgba(0,180,216,0.3))'
+            }}>Brain Mantra Teacher Panel</span>
+          </div>
+        </header>
+
+        <div style={{ flex: 1 }}>
 
         {/* MY LEVELS */}
         {tab === 'levels' && (
@@ -1690,6 +1754,7 @@ export default function TeacherDashboard() {
             onClose={() => setPreviewingSection(null)} 
           />
         )}
+        </div>
       </main>
     </div>
   )

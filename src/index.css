@@ -689,21 +689,25 @@ select option { background: var(--bg-elevated); }
   width: 240px;
   background: var(--bg-surface);
   border-right: 1px solid var(--border-orange);
-  padding: var(--space-6) 0;
+  padding: var(--space-4) 0;
   position: fixed;
   top: 0; left: 0;
   height: 100vh;
-  overflow-y: auto;
+  overflow: hidden;
   z-index: 50;
   box-shadow: 4px 0 24px rgba(0,0,0,0.3), 1px 0 0 rgba(255,122,0,0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
 }
 .light-theme .admin-sidebar {
   box-shadow: 4px 0 24px rgba(120,60,10,0.07), 1px 0 0 rgba(255,122,0,0.06);
 }
 .admin-sidebar__logo {
-  padding: 0 var(--space-6) var(--space-6);
+  padding: 0 var(--space-6) var(--space-4);
   border-bottom: 1px solid var(--border-orange);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 .admin-sidebar__logo h2 {
   font-size: 1rem;
@@ -713,9 +717,9 @@ select option { background: var(--bg-elevated); }
 .admin-sidebar__logo p { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
 .admin-nav-item {
   display: flex; align-items: center; gap: var(--space-3);
-  padding: var(--space-3) var(--space-6);
+  padding: var(--space-2) var(--space-6);
   color: var(--text-secondary);
-  font-size: 0.9rem; font-weight: 500;
+  font-size: 0.85rem; font-weight: 500;
   cursor: pointer; transition: all var(--trans-fast);
   border: none; background: none; width: 100%;
   text-align: left; font-family: var(--font-body);

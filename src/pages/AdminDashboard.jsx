@@ -1096,6 +1096,28 @@ function CustomFormsTab() {
 
   const getActiveSections = () => {
     const std = getTeacherSectionsForLevel(qLevel, qDay)
+    
+    // Create a map of saved section titles from savedQuestions
+    const savedTitlesMap = {}
+    savedQuestions.forEach(q => {
+      if (q.level === qLevel && q.day_number === parseInt(qDay, 10)) {
+        try {
+          const parsed = typeof q.question === 'string' ? JSON.parse(q.question) : q.question
+          if (parsed && parsed.title && !parsed.title.startsWith('Daily Challenge - Day') && parsed.title !== 'Abacus Daily Challenge') {
+            savedTitlesMap[q.section] = parsed.title
+          }
+        } catch(e) {}
+      }
+    })
+
+    // Map std sections to use saved title if exists
+    const stdWithTitles = std.map(s => {
+      return {
+        value: s.value,
+        label: savedTitlesMap[s.value] || s.label
+      }
+    })
+
     const customSecs = []
     
     // Merge database discovered custom sections
@@ -1104,13 +1126,7 @@ function CustomFormsTab() {
         const isStd = std.some(s => s.value === q.section)
         const isAlreadyAdded = customSecs.some(s => s.value === q.section)
         if (!isStd && !isAlreadyAdded) {
-          let label = q.section
-          try {
-            const parsed = JSON.parse(q.question)
-            if (parsed && parsed.title) {
-              label = parsed.title
-            }
-          } catch(e) {}
+          const label = savedTitlesMap[q.section] || q.section
           customSecs.push({ value: q.section, label })
         }
       }
@@ -1125,7 +1141,7 @@ function CustomFormsTab() {
       }
     })
 
-    return [...std, ...customSecs]
+    return [...stdWithTitles, ...customSecs]
   }
 
   const handleRenameSection = async () => {
@@ -1195,23 +1211,40 @@ function CustomFormsTab() {
       q.day_number === parseInt(qDay, 10) && 
       q.section === qSection
     )
+    const std = getTeacherSectionsForLevel(qLevel, qDay)
+    const stdMatch = std.find(s => s.value === qSection)
+    const defaultTitle = stdMatch ? stdMatch.label : qSection
+
     if (match) {
       setEditQId(match.id)
       setQFormatExample(match.format_example || '')
       try {
-        const parsed = JSON.parse(match.question)
+        const parsed = typeof match.question === 'string' ? JSON.parse(match.question) : match.question
         if (parsed && typeof parsed === 'object' && parsed.items) {
-          setFormTitle(parsed.title || 'Abacus Daily Challenge')
+          let itemsToLoad = parsed.items;
+          // Recover from double-encoded JSON corruption
+          if (itemsToLoad.length === 1 && typeof itemsToLoad[0].questionText === 'string' && itemsToLoad[0].questionText.startsWith('{"title":')) {
+            try {
+              const recovered = JSON.parse(itemsToLoad[0].questionText);
+              if (recovered && Array.isArray(recovered.items)) {
+                itemsToLoad = recovered.items;
+                if (recovered.title) parsed.title = recovered.title;
+                if (recovered.description) parsed.description = recovered.description;
+              }
+            } catch(e) {}
+          }
+          const isDefault = parsed.title?.startsWith('Daily Challenge - Day') || parsed.title === 'Abacus Daily Challenge'
+          setFormTitle(isDefault ? defaultTitle : (parsed.title || defaultTitle))
           setFormDescription(parsed.description || '')
-          setFormItems(parsed.items || [])
+          setFormItems(itemsToLoad || [])
         } else {
           const convertedItems = convertLegacyToFormItems(parsed || match.question, match.answer)
-          setFormTitle(`Daily Challenge - Day ${qDay}`)
+          setFormTitle(defaultTitle)
           setFormDescription('')
           setFormItems(convertedItems)
         }
       } catch (e) {
-        setFormTitle(`Daily Challenge - Day ${qDay}`)
+        setFormTitle(defaultTitle)
         setFormDescription('')
         setFormItems([{
           id: `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -1226,7 +1259,7 @@ function CustomFormsTab() {
     } else {
       setEditQId(null)
       setQFormatExample('')
-      setFormTitle(`Daily Challenge - Day ${qDay}`)
+      setFormTitle(defaultTitle)
       setFormDescription('')
       setFormItems([{
         id: `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -1289,29 +1322,23 @@ function CustomFormsTab() {
 
   const getTeacherSectionsForLevel = (level, dayStr) => {
     const day = parseInt(dayStr, 10)
+    if (level === 'l1' || level === 'beginner') {
+      return [
+        { value: 'abacus', label: '🧮 Abacus' },
+        { value: 'bead_fun', label: '🧮 Bead Fun' },
+        { value: 'activity', label: '⚡ Activity' }
+      ]
+    }
     if (day === 0) {
-      if (level === 'l1' || level === 'beginner') {
-        return [
-          { value: 'abacus', label: '🧮 Abacus' }
-        ]
-      }
       return [
         { value: 'power_exercise', label: '⚡ Power Exercise' }
       ]
     }
     if (day > 0 && day % 5 === 0) {
-      if (level === 'l1' || level === 'beginner') {
-        return [
-          { value: 'abacus', label: '🧮 Abacus' }
-        ]
-      }
       return [
         { value: 'power_exercise', label: '⚡ Power Exercise' }
       ]
     }
-    if (level === 'l1' || level === 'beginner') return [
-      { value: 'abacus', label: '🧮 Abacus' }
-    ]
     if (level === 'l4') return [
       { value: 'form_the_question', label: '✏ Form The Question' }
     ]
@@ -1387,8 +1414,31 @@ function CustomFormsTab() {
         </div>
       </div>
 
-      {/* Designer UI */}
-      {/* Designer UI */}
+      {/* Form Title & Description Card */}
+      <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem', background: 'var(--bg-card)', borderTop: '8px solid var(--primary)', borderRadius: '8px', boxShadow: 'var(--shadow-sm)' }}>
+        <div className="form-group" style={{ marginBottom: '1rem' }}>
+          <label className="form-label" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Section Title (Renames section displayed to student)</label>
+          <input 
+            type="text" 
+            className="input-premium"
+            value={formTitle}
+            onChange={e => setFormTitle(e.target.value)}
+            placeholder="e.g. Bead Fun"
+            style={{ width: '100%', fontSize: '1.4rem', fontWeight: 'bold', padding: '0.5rem 0.75rem' }}
+          />
+        </div>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Section Instructions / Description</label>
+          <textarea 
+            rows={2}
+            className="input-premium"
+            value={formDescription}
+            onChange={e => setFormDescription(e.target.value)}
+            placeholder="Enter description..."
+            style={{ width: '100%', fontSize: '0.95rem', padding: '0.5rem 0.75rem', resize: 'vertical' }}
+          />
+        </div>
+      </div>
 
       {/* Format instruction (legacy support) */}
       <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem', background: 'var(--bg-card)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -2490,6 +2540,7 @@ function LoginLogsTab() {
 export default function AdminDashboard() {
   const navigate = useNavigate()
   const [tab, setTab] = useState('overview')
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   useEffect(() => {
     const token = localStorage.getItem('abacus_admin_token')
@@ -2514,38 +2565,102 @@ export default function AdminDashboard() {
   ]
 
   return (
-    <div className="admin-layout">
+    <div className="admin-layout" data-sidebar={sidebarOpen ? 'open' : 'closed'} style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      
+      {/* Sidebar Overlay (Mobile only) */}
+      {sidebarOpen && typeof window !== 'undefined' && window.innerWidth <= 991 && (
+        <div 
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+            background: 'rgba(0,0,0,0.5)', zIndex: 40, backdropFilter: 'blur(3px)'
+          }} 
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="admin-sidebar">
-        <div className="admin-sidebar__logo" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem' }}>
-          <img src="/brand-logo.jpeg" alt="Brain Mantra Logo" style={{ width: 42, height: 42, borderRadius: 10 }} />
-          <h2>Admin Portal</h2>
-          <p>Brain Mantra</p>
+      <aside className="admin-sidebar" style={{ transition: 'transform 0.3s ease, width 0.3s ease' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', overflow: 'hidden' }}>
+          <div className="admin-sidebar__logo" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.4rem', width: '100%' }}>
+            <img src="/brand-logo.jpeg" alt="Brain Mantra Logo" style={{ width: 40, height: 40, borderRadius: 10 }} />
+            <h2 style={{ fontSize: '0.95rem' }}>Admin Portal</h2>
+            <p>Brain Mantra</p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', width: '100%', overflowY: 'auto' }}>
+            {NAV.map(n => (
+              <button key={n.id}
+                className={`admin-nav-item ${tab === n.id ? 'active' : ''}`}
+                onClick={() => { setTab(n.id); if (window.innerWidth <= 991) setSidebarOpen(false); }}
+              >
+                <span>{n.icon}</span> {n.label}
+              </button>
+            ))}
+          </div>
         </div>
-        {NAV.map(n => (
-          <button key={n.id}
-            className={`admin-nav-item ${tab === n.id ? 'active' : ''}`}
-            onClick={() => setTab(n.id)}
-          >
-            <span>{n.icon}</span> {n.label}
-          </button>
-        ))}
-        <div style={{ position: 'absolute', bottom: '1.5rem', width: '100%', padding: '0 1rem' }}>
-          <button className="btn btn-ghost btn-sm btn-block" onClick={handleLogout}>Sign Out</button>
+        <div style={{ width: '100%', padding: '0.5rem 1rem 0' }}>
+          <button className="btn btn-ghost btn-sm btn-block" onClick={handleLogout} style={{ justifyContent: 'center' }}>Sign Out</button>
         </div>
       </aside>
 
       {/* Main content */}
-      <main className="admin-main">
-        { tab === 'overview'  && <OverviewTab /> }
-        { tab === 'students'  && <StudentsTab /> }
-        { tab === 'answers'   && <StudentAnswersTab apiInstance={adminApi} isTeacherPortal={false} /> }
-        { tab === 'teachers'  && <TeachersTab /> }
-        { tab === 'builder'   && <CustomFormsTab /> }
-        { tab === 'qbank'     && <QuestionBankTab /> }
-        { tab === 'perf'      && <PerformanceTab /> }
-        { tab === 'actlog'    && <ActivityLogTab /> }
-        { tab === 'loginlog'  && <LoginLogsTab /> }
+      <main className="admin-main" style={{ transition: 'margin-left 0.3s ease', display: 'flex', flexDirection: 'column' }}>
+        {/* Portal Header */}
+        <header style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '2rem',
+          padding: '0.75rem 1rem',
+          background: 'rgba(12,14,21,0.7)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderRadius: 16,
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderTop: '1px solid rgba(255,255,255,0.1)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.3), 0 1px 0 rgba(255,255,255,0.05) inset',
+          position: 'sticky',
+          top: '1rem',
+          zIndex: 30,
+        }}>
+          <button 
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            style={{
+              background: sidebarOpen ? 'rgba(245,200,66,0.12)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${sidebarOpen ? 'rgba(245,200,66,0.3)' : 'rgba(255,255,255,0.08)'}`,
+              color: sidebarOpen ? 'var(--accent-gold)' : 'var(--text-secondary)',
+              fontSize: '1.1rem', cursor: 'pointer',
+              width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: '10px', transition: 'all 0.2s ease',
+              boxShadow: sidebarOpen ? '0 0 12px rgba(245,200,66,0.2)' : 'none'
+            }}
+          >
+            {sidebarOpen ? '✕' : '☰'}
+          </button>
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+            <span style={{
+              fontFamily: 'var(--font-display)',
+              fontWeight: 700,
+              fontSize: '0.95rem',
+              background: 'linear-gradient(135deg, #fde68a, var(--admin-primary))',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              filter: 'drop-shadow(0 0 8px rgba(245,200,66,0.3))'
+            }}>Brain Mantra Admin Panel</span>
+          </div>
+        </header>
+
+        <div style={{ flex: 1 }}>
+          { tab === 'overview'  && <OverviewTab /> }
+          { tab === 'students'  && <StudentsTab /> }
+          { tab === 'answers'   && <StudentAnswersTab apiInstance={adminApi} isTeacherPortal={false} /> }
+          { tab === 'teachers'  && <TeachersTab /> }
+          { tab === 'builder'   && <CustomFormsTab /> }
+          { tab === 'qbank'     && <QuestionBankTab /> }
+          { tab === 'perf'      && <PerformanceTab /> }
+          { tab === 'actlog'    && <ActivityLogTab /> }
+          { tab === 'loginlog'  && <LoginLogsTab /> }
+        </div>
       </main>
     </div>
   )
