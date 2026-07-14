@@ -206,7 +206,7 @@ function WindingLevelMap({ days, currentDay, student, dayMap, onBack }) {
             onClick={e => e.stopPropagation()} 
             style={{ 
               width: '100%', 
-              maxWidth: '450px', 
+              maxWidth: '750px', 
               padding: '2rem 1.5rem', 
               position: 'relative',
               borderRadius: '24px',
