@@ -272,7 +272,7 @@ router.get('/:id/progress/:dayNumber/sections', async (req, res) => {
         if (tq && tq.question) {
           try {
             const parsed = typeof tq.question === 'string' ? JSON.parse(tq.question) : tq.question
-            if (parsed && parsed.title) {
+            if (parsed && parsed.title && !parsed.title.startsWith('Daily Challenge - Day') && parsed.title !== 'Abacus Daily Challenge') {
               labelVal = parsed.title
             }
           } catch (e) {}
@@ -343,7 +343,7 @@ router.get('/:id/progress/:dayNumber/sections', async (req, res) => {
       if (tq && tq.question) {
         try {
           const parsed = typeof tq.question === 'string' ? JSON.parse(tq.question) : tq.question
-          if (parsed && parsed.title) {
+          if (parsed && parsed.title && !parsed.title.startsWith('Daily Challenge - Day') && parsed.title !== 'Abacus Daily Challenge') {
             labelVal = parsed.title
           }
         } catch (e) {}
@@ -580,15 +580,18 @@ router.post('/:id/progress/:dayNumber/sections/:section/submit', async (req, res
       [studentId, dayNumber]
     )
     const sectionData = dayRows[0]?.section_data || {}
-    let labelVal = SECTION_LABELS[section] || section
+    let labelVal = null
     const tq = await getTeacherQuestion(level, dayNumber, section)
     if (tq && tq.question) {
       try {
         const parsed = typeof tq.question === 'string' ? JSON.parse(tq.question) : tq.question
-        if (parsed && parsed.title) {
+        if (parsed && parsed.title && !parsed.title.startsWith('Daily Challenge - Day') && parsed.title !== 'Abacus Daily Challenge') {
           labelVal = parsed.title
         }
       } catch (e) {}
+    }
+    if (!labelVal) {
+      labelVal = SECTION_LABELS[section] || section
     }
     sectionData[section] = {
       status: 'done',

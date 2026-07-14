@@ -148,7 +148,10 @@ export default function SectionAttemptPage() {
               const parsed = typeof qContent === 'string' ? JSON.parse(qContent) : qContent
               if (parsed && typeof parsed === 'object') {
                 if (parsed.title) {
-                  setCustomSectionTitle(parsed.title)
+                  const cleaned = parsed.title.startsWith('Daily Challenge - Day') || parsed.title === 'Abacus Daily Challenge'
+                    ? ''
+                    : parsed.title;
+                  setCustomSectionTitle(cleaned)
                 }
                 if (Array.isArray(parsed.items) && parsed.items.length > 0) {
                   let itemsToRender = parsed.items;
@@ -158,7 +161,12 @@ export default function SectionAttemptPage() {
                       const recovered = JSON.parse(itemsToRender[0].questionText);
                       if (recovered && Array.isArray(recovered.items)) {
                         itemsToRender = recovered.items;
-                        if (recovered.title) setCustomSectionTitle(recovered.title);
+                        if (recovered.title) {
+                          const cleanedRec = recovered.title.startsWith('Daily Challenge - Day') || recovered.title === 'Abacus Daily Challenge'
+                            ? ''
+                            : recovered.title;
+                          setCustomSectionTitle(cleanedRec);
+                        }
                       }
                     } catch(e) {}
                   }
