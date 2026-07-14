@@ -163,6 +163,16 @@ export default function StudentLayout({ children }) {
             </button>
 
             <button 
+              className={`admin-nav-item${isActive('/shop') ? ' active' : ''}`}
+              onClick={() => { navigate('/shop'); setSidebarOpen(window.innerWidth > 991 ? sidebarOpen : false); }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+            >
+              <span style={{ fontSize: '1.1rem', width: 22, textAlign: 'center' }}>🛍</span>
+              <span>XP Shop</span>
+              {isActive('/shop') && <span style={{ marginLeft: 'auto', width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)', boxShadow: '0 0 8px var(--primary)' }} />}
+            </button>
+
+            <button 
               className={`admin-nav-item${isActive('/profile') ? ' active' : ''}`}
               onClick={() => { navigate('/profile'); setSidebarOpen(window.innerWidth > 991 ? sidebarOpen : false); }}
               style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}

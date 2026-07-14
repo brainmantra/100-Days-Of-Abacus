@@ -185,7 +185,6 @@ router.post('/students/sync', requireAdmin, async (req, res) => {
     let deletedCount = 0
     let credentialsGenerated = 0
 
-    // Helper to generate credentials — login ID is derived from the student's name
     const generateCredentials = async (name, mobile) => {
       const base = name.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') || `student_${mobile.slice(-4)}`
       // Check uniqueness; append suffix if needed
@@ -196,7 +195,15 @@ router.post('/students/sync', requireAdmin, async (req, res) => {
         if (clash.length === 0) break
         username = `${base}_${suffix++}`
       }
-      const plain_password = Math.random().toString(36).slice(-6)
+      
+      // Password generation logic
+      const { rows: existingMobile } = await pool.query('SELECT id FROM students WHERE mobile = $1', [mobile])
+      let plain_password = `BM${mobile.slice(-3)}`
+      if (existingMobile.length > 0) {
+        const random3 = Math.floor(Math.random() * 900) + 100 // 100 to 999
+        plain_password = `BM${random3}`
+      }
+
       return { username, plain_password }
     }
 
@@ -267,10 +274,10 @@ router.post('/students/sync', requireAdmin, async (req, res) => {
 // ── POST /api/admin/students ──────────────────────────────────────────────────
 router.post('/students', requireAdmin, async (req, res) => {
   try {
-    const { name, mobile, level, username, password } = req.body
+    const { name, mobile, level, username } = req.body
 
-    if (!name || !mobile || !level || !username || !password) {
-      return res.status(400).json({ message: 'All fields (Name, Mobile, Level, Login ID, Password) are required.' })
+    if (!name || !mobile || !level || !username) {
+      return res.status(400).json({ message: 'All fields (Name, Mobile, Level, Login ID) are required.' })
     }
 
     if (!/^\d{10}$/.test(mobile)) {
@@ -294,15 +301,23 @@ router.post('/students', requireAdmin, async (req, res) => {
       return res.status(409).json({ message: 'This Login ID (username) is already taken.' })
     }
 
+    // Password generation logic
+    const { rows: existingMobile } = await pool.query('SELECT id FROM students WHERE mobile = $1', [mobile])
+    let plain_password = `BM${mobile.slice(-3)}`
+    if (existingMobile.length > 0) {
+      const random3 = Math.floor(Math.random() * 900) + 100 // 100 to 999
+      plain_password = `BM${random3}`
+    }
+
     // Hash the password
-    const hash = await bcrypt.hash(password, 12)
+    const hash = await bcrypt.hash(plain_password, 12)
 
     // Insert student
     const { rows: created } = await pool.query(
       `INSERT INTO students (name, mobile, level, username, password_hash, plain_password, registration_date)
        VALUES ($1, $2, $3, $4, $5, $6, NOW())
        RETURNING *`,
-      [name.trim(), mobile.trim(), level, cleanUsername, hash, password]
+      [name.trim(), mobile.trim(), level, cleanUsername, hash, plain_password]
     )
 
     delete created[0].password_hash

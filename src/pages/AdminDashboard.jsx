@@ -245,7 +245,6 @@ function StudentsTab() {
   const [newMobile, setNewMobile] = useState('')
   const [newLevel, setNewLevel] = useState('l1')
   const [newUsername, setNewUsername] = useState('')
-  const [newPassword, setNewPassword] = useState('')
   const [newSaving, setNewSaving] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [usernameAutoFilled, setUsernameAutoFilled] = useState(true)
@@ -325,7 +324,7 @@ function StudentsTab() {
 
   const handleAddStudent = async (e) => {
     e.preventDefault()
-    if (!newName || !newMobile || !newLevel || !newUsername || !newPassword) {
+    if (!newName || !newMobile || !newLevel || !newUsername) {
       toast.error('All fields are required.')
       return
     }
@@ -339,8 +338,7 @@ function StudentsTab() {
         name: newName,
         mobile: newMobile,
         level: newLevel,
-        username: newUsername,
-        password: newPassword
+        username: newUsername
       })
       toast.success('Student added successfully.')
       fetchStudents()
@@ -349,7 +347,6 @@ function StudentsTab() {
       setNewMobile('')
       setNewLevel('l1')
       setNewUsername('')
-      setNewPassword('')
       setUsernameAutoFilled(true)
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to add student.')
@@ -662,10 +659,6 @@ function StudentsTab() {
                     ↺ Reset
                   </button>
                 </div>
-              </div>
-              <div className="form-group" style={{ marginTop: '0.75rem' }}>
-                <label className="form-label" style={{ color: 'var(--text-secondary)' }}>Password</label>
-                <input className="form-input" type="password" required placeholder="e.g. password123" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '2rem', justifyContent: 'flex-end' }}>
                 <button type="button" className="btn btn-ghost" onClick={() => setShowAddModal(false)}>
