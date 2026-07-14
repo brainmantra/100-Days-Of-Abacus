@@ -29,6 +29,144 @@ export default function PerformanceReportPage() {
 
   const [loading, setLoading] = useState(true)
   const [report, setReport] = useState(null)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [shareImageUrl, setShareImageUrl] = useState('')
+
+  useEffect(() => {
+    if (report && !shareImageUrl) {
+      // Auto open share modal on load
+      setShowShareModal(true)
+
+      // Draw the certificate image in Canvas
+      const canvas = document.createElement('canvas')
+      canvas.width = 800
+      canvas.height = 500
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+
+      // Background Gradient
+      const gradient = ctx.createLinearGradient(0, 0, 800, 500)
+      gradient.addColorStop(0, '#0a0d16')
+      gradient.addColorStop(0.5, '#121727')
+      gradient.addColorStop(1, '#070a10')
+      ctx.fillStyle = gradient
+      ctx.fillRect(0, 0, 800, 500)
+
+      // Floating Neon Orbs decoration
+      ctx.fillStyle = 'rgba(255, 122, 0, 0.05)'
+      ctx.beginPath()
+      ctx.arc(100, 100, 150, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.fillStyle = 'rgba(0, 180, 216, 0.04)'
+      ctx.beginPath()
+      ctx.arc(700, 400, 180, 0, Math.PI * 2)
+      ctx.fill()
+
+      // Double borders
+      ctx.strokeStyle = 'rgba(255, 122, 0, 0.3)'
+      ctx.lineWidth = 4
+      ctx.strokeRect(20, 20, 760, 460)
+
+      ctx.strokeStyle = 'rgba(245, 200, 66, 0.5)'
+      ctx.lineWidth = 1.5
+      ctx.strokeRect(26, 26, 748, 448)
+
+      // Add corner accents
+      const corners = [
+        [26, 26, 40, 40],
+        [774, 26, -40, 40],
+        [26, 474, 40, -40],
+        [774, 474, -40, -40]
+      ]
+      ctx.fillStyle = '#f5c842'
+      corners.forEach(([x, y, w, h]) => {
+        ctx.fillRect(x, y, w, 4)
+        ctx.fillRect(x, y, 4, h)
+      })
+
+      // Title header
+      ctx.fillStyle = '#e2e8f0'
+      ctx.font = '800 13px system-ui, sans-serif'
+      ctx.textAlign = 'center'
+      ctx.letterSpacing = '5px'
+      ctx.fillText('BRAIN MANTRA ABACUS ACADEMY', 400, 70)
+
+      // Challenge completion label
+      ctx.fillStyle = '#f5c842'
+      ctx.font = '900 36px system-ui, sans-serif'
+      ctx.fillText(`DAY ${dayNum} COMPLETED!`, 400, 150)
+
+      // Congratulates
+      ctx.fillStyle = '#94a3b8'
+      ctx.font = 'italic 16px Georgia, serif'
+      ctx.fillText('This certificate is proudly awarded to', 400, 205)
+
+      // Student Name
+      ctx.fillStyle = '#ffffff'
+      ctx.font = 'bold 32px Georgia, serif'
+      ctx.fillText(report.student?.name || 'Abacus Champion', 400, 255)
+
+      // Horizontal glow line
+      const lineGrad = ctx.createLinearGradient(250, 0, 550, 0)
+      lineGrad.addColorStop(0, 'transparent')
+      lineGrad.addColorStop(0.5, 'rgba(255, 122, 0, 0.6)')
+      lineGrad.addColorStop(1, 'transparent')
+      ctx.fillStyle = lineGrad
+      ctx.fillRect(250, 275, 300, 2)
+
+      // Description text
+      ctx.fillStyle = '#94a3b8'
+      ctx.font = '15px system-ui, sans-serif'
+      ctx.fillText(`for outstanding performance in the 100 Days of Abacus Challenge.`, 400, 310)
+
+      // Stats cards
+      const totalCorrect = report.responses?.filter(r => r.is_correct).length || 0
+      const totalQs = report.responses?.length || 0
+      const accuracyVal = totalQs > 0 ? Math.round((totalCorrect / totalQs) * 100) : 0
+
+      const statsList = [
+        { label: 'ACCURACY', val: `${accuracyVal}%` },
+        { label: 'XP EARNED', val: `+${report.day?.xp_earned || 0} XP` },
+        { label: 'STREAK', val: `${student?.streak || 1} Days` }
+      ]
+      
+      statsList.forEach((stat, idx) => {
+        const startX = 200 + idx * 200
+        
+        // Draw stat box
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.02)'
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)'
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        if (typeof ctx.roundRect === 'function') {
+          ctx.roundRect(startX - 80, 340, 160, 65, 8)
+        } else {
+          ctx.rect(startX - 80, 340, 160, 65)
+        }
+        ctx.fill()
+        ctx.stroke()
+
+        // Stat value
+        ctx.fillStyle = idx === 0 ? '#10b981' : idx === 1 ? '#f5c842' : '#ff7a00'
+        ctx.font = 'bold 20px system-ui, sans-serif'
+        ctx.fillText(stat.val, startX, 370)
+
+        // Stat label
+        ctx.fillStyle = '#64748b'
+        ctx.font = 'bold 10px system-ui, sans-serif'
+        ctx.fillText(stat.label, startX, 390)
+      })
+
+      // Footer
+      ctx.fillStyle = '#64748b'
+      ctx.font = 'italic 12px Georgia, serif'
+      ctx.fillText('"Every bead is a step towards greatness"', 400, 445)
+
+      // Convert to image URL
+      setShareImageUrl(canvas.toDataURL('image/png'))
+    }
+  }, [report, dayNum, student])
 
   useEffect(() => {
     let mounted = true
@@ -134,6 +272,9 @@ export default function PerformanceReportPage() {
           <button className="btn btn-ghost btn-sm" onClick={() => navigate('/challenge')}>
             ← Back to Challenge
           </button>
+          <button className="btn btn-primary btn-sm" onClick={() => setShowShareModal(true)} style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-bright))' }}>
+            🎉 Share Progress
+          </button>
           <button className="btn btn-primary btn-sm" onClick={() => navigate('/leaderboard')}>
             🏅 View Leaderboard
           </button>
@@ -234,6 +375,92 @@ export default function PerformanceReportPage() {
         )}
         </div>
       </div>
+
+      {/* Dynamic Progress Share Modal */}
+      {showShareModal && (
+        <div 
+          className="modal-overlay" 
+          onClick={() => setShowShareModal(false)}
+          style={{ zIndex: 1000, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}
+        >
+          <div 
+            className="card animate-pop" 
+            onClick={e => e.stopPropagation()} 
+            style={{ maxWidth: '640px', width: '100%', margin: '1rem', padding: '2rem', textAlign: 'center', background: 'rgba(15,20,32,0.95)', border: '1px solid rgba(255,122,0,0.3)', borderRadius: '24px', boxShadow: '0 20px 60px rgba(0,0,0,0.8)', maxHeight: '90vh', overflowY: 'auto' }}
+          >
+            <h2 style={{ fontSize: '1.4rem', color: 'var(--primary-bright)', marginBottom: '0.25rem' }}>
+              🎉 Day {dayNum} Complete!
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.25rem', fontSize: '0.85rem' }}>
+              Awesome job completing today's challenge. Here is your personalized progress certificate! Save it or share it directly to social media and tag <strong>Brain Mantra</strong>.
+            </p>
+
+            {/* Display Generated Certificate Image */}
+            {shareImageUrl ? (
+              <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
+                <img 
+                  src={shareImageUrl} 
+                  alt="Day Complete Certificate" 
+                  style={{ width: '100%', borderRadius: '12px', border: '1.5px solid rgba(255,122,0,0.25)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }} 
+                />
+              </div>
+            ) : (
+              <div style={{ height: '240px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', marginBottom: '1.5rem', border: '1px dashed var(--border)' }}>
+                <div className="spinner" />
+              </div>
+            )}
+
+            {/* Sharing Block */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <a
+                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                  `🎉 I just completed Day ${dayNum} of the 100 Days Abacus Challenge at Brain Mantra with ${accuracy}% accuracy! 🧮 Join me at @brainmantra`
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-whatsapp"
+                style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', height: '44px', fontSize: '0.9rem', borderRadius: '10px' }}
+              >
+                💬 Share on WhatsApp
+              </a>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      `I just completed Day ${dayNum} of the 100 Days Abacus Challenge with ${accuracy}% accuracy! 🧮 Tagging @brainmantra`
+                    )
+                    toast.success('Instagram tag text copied! Share your story & tag @brainmantra.')
+                  }}
+                  className="btn btn-ghost"
+                  style={{ border: '1.5px solid rgba(255,255,255,0.1)', height: '44px', fontSize: '0.85rem', justifyContent: 'center', borderRadius: '10px' }}
+                >
+                  📸 Copy Instagram Tag
+                </button>
+
+                {shareImageUrl && (
+                  <a
+                    href={shareImageUrl}
+                    download={`BrainMantra_Day_${dayNum}_Progress.png`}
+                    className="btn btn-ghost"
+                    style={{ textDecoration: 'none', border: '1.5px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '44px', fontSize: '0.85rem', color: 'var(--text-primary)', borderRadius: '10px' }}
+                  >
+                    📥 Save to Device
+                  </a>
+                )}
+              </div>
+
+              <button
+                onClick={() => setShowShareModal(false)}
+                className="btn btn-ghost btn-sm"
+                style={{ marginTop: '0.5rem', color: 'var(--text-muted)' }}
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </StudentLayout>
   )
 }

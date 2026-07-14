@@ -7,6 +7,7 @@ import api from '../utils/api'
 import DayCard from '../components/DayCard'
 import StreakCorner from '../components/StreakCorner'
 import toast from 'react-hot-toast'
+import { calculateAchievements } from '../utils/achievements'
 import './ChallengePage.css'
 
 export default function ChallengePage() {
@@ -15,6 +16,9 @@ export default function ChallengePage() {
   const [streak, setStreak] = useState(0)
   const [longestStreak, setLongestStreak] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [selectedBadge, setSelectedBadge] = useState(null)
+
+  const achievements = useMemo(() => calculateAchievements(days, streak, longestStreak), [days, streak, longestStreak])
 
   const LEVEL_LABELS = {
     beginner: 'Beginner',
@@ -170,6 +174,150 @@ export default function ChallengePage() {
           </div>
 
 
+
+          {/* Badges & Achievements Section */}
+          <div className="card" style={{ padding: '1.5rem', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', marginBottom: '1.5rem' }}>
+            <h3 style={{ marginBottom: '0.25rem', fontSize: '1.1rem', color: 'var(--text-primary)', fontWeight: 600 }}>🏆 Badges & Achievements</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Track your milestones, unlock dynamic abacus badges, and share achievements with friends!</p>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
+              {achievements.map(badge => {
+                const percent = Math.min((badge.current / badge.target) * 100, 100)
+                return (
+                  <div 
+                    key={badge.id} 
+                    className="card-3d"
+                    onClick={() => badge.earned && setSelectedBadge(badge)}
+                    style={{
+                      background: badge.earned ? 'rgba(255,122,0,0.04)' : 'rgba(255,255,255,0.01)',
+                      border: badge.earned ? '1px solid rgba(255,122,0,0.3)' : '1px solid rgba(255,255,255,0.06)',
+                      borderRadius: '12px',
+                      padding: '1.25rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      textAlign: 'center',
+                      opacity: badge.earned ? 1 : 0.65,
+                      cursor: badge.earned ? 'pointer' : 'default',
+                      position: 'relative',
+                      boxShadow: badge.earned ? '0 8px 24px rgba(255,122,0,0.15)' : 'none',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    {/* Badge Icon */}
+                    <div style={{
+                      fontSize: '2.5rem',
+                      marginBottom: '0.75rem',
+                      filter: badge.earned ? 'drop-shadow(0 0 10px rgba(255,122,0,0.5))' : 'grayscale(100%)',
+                      transform: badge.earned ? 'scale(1.05)' : 'scale(0.95)'
+                    }}>
+                      {badge.icon}
+                    </div>
+                    
+                    {/* Badge Info */}
+                    <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: '0 0 0.25rem', color: badge.earned ? 'var(--primary-bright)' : 'var(--text-secondary)' }}>
+                      {badge.title}
+                    </h4>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0 0 0.75rem', minHeight: '34px' }}>
+                      {badge.desc}
+                    </p>
+                    
+                    {/* Badge Progress bar */}
+                    <div style={{ width: '100%', marginTop: 'auto' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
+                        <span>Progress</span>
+                        <span>{Math.round(badge.current)} / {badge.target} {badge.unit}</span>
+                      </div>
+                      <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{
+                          width: `${percent}%`,
+                          height: '100%',
+                          background: badge.earned 
+                            ? 'linear-gradient(90deg, var(--primary), var(--primary-bright))' 
+                            : 'var(--text-muted)',
+                          borderRadius: '3px',
+                          boxShadow: badge.earned ? '0 0 8px var(--primary)' : 'none'
+                        }} />
+                      </div>
+                    </div>
+                    
+                    {/* Earned Banner Ribbon */}
+                    {badge.earned && (
+                      <span style={{
+                        position: 'absolute', top: '8px', right: '8px',
+                        fontSize: '0.65rem', fontWeight: 800, color: 'var(--success)',
+                        background: 'rgba(16,185,129,0.1)', padding: '2px 6px', borderRadius: '4px'
+                      }}>
+                        EARNED
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Selected Badge Share Modal */}
+          {selectedBadge && (
+            <div 
+              className="modal-overlay" 
+              onClick={() => setSelectedBadge(null)}
+              style={{ zIndex: 1000, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <div 
+                className="card animate-pop" 
+                onClick={e => e.stopPropagation()} 
+                style={{ maxWidth: '440px', width: '100%', margin: '1.5rem', padding: '2.5rem', textAlign: 'center', background: 'rgba(15,20,32,0.95)', border: '1px solid rgba(255,122,0,0.3)', borderRadius: '24px', boxShadow: '0 20px 60px rgba(0,0,0,0.8)' }}
+              >
+                <div style={{ fontSize: '4.5rem', marginBottom: '1rem' }}>
+                  {selectedBadge.icon}
+                </div>
+                <h2 style={{ fontSize: '1.6rem', color: 'var(--primary-bright)', marginBottom: '0.25rem' }}>
+                  {selectedBadge.title} Badge!
+                </h2>
+                <span className="badge badge-success" style={{ marginBottom: '1.5rem' }}>🏆 Milestone Earned</span>
+                <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontSize: '0.95rem' }}>
+                  "{selectedBadge.desc}"
+                </p>
+
+                {/* Sharing Block */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <a
+                    href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                      `🎉 I just unlocked the "${selectedBadge.title}" ${selectedBadge.icon} badge in the 100 Days of Abacus Challenge! 🧮 Learn mental math with me at Brain Mantra! @brainmantra`
+                    )}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn-whatsapp"
+                    style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', height: '48px', fontSize: '0.95rem' }}
+                  >
+                    💬 Share on WhatsApp
+                  </a>
+                  
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        `I just unlocked the "${selectedBadge.title}" ${selectedBadge.icon} badge in the 100 Days of Abacus Challenge! 🧮 Join me @brainmantra`
+                      )
+                      toast.success('Instagram tag text copied! Share your story & tag @brainmantra.')
+                    }}
+                    className="btn btn-ghost"
+                    style={{ border: '1.5px solid rgba(255,255,255,0.1)', height: '48px', fontSize: '0.95rem', justifyContent: 'center' }}
+                  >
+                    📸 Copy Instagram Tag
+                  </button>
+
+                  <button
+                    onClick={() => setSelectedBadge(null)}
+                    className="btn btn-ghost btn-sm"
+                    style={{ marginTop: '0.5rem', color: 'var(--text-muted)' }}
+                  >
+                    Close Dialog
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Recent Day Completions Table */}
           <div className="card" style={{ padding: '1.5rem', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>

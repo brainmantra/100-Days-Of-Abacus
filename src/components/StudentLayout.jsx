@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
+import api from '../utils/api'
+import { calculateAchievements } from '../utils/achievements'
 
 export default function StudentLayout({ children }) {
   const { student, logout } = useAuth()
@@ -11,6 +13,29 @@ export default function StudentLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [profileOpen, setProfileOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+
+  const [days, setDays] = useState([])
+  const [streak, setStreak] = useState(0)
+  const [longestStreak, setLongestStreak] = useState(0)
+
+  useEffect(() => {
+    let mounted = true
+    if (student?.id) {
+      api.get(`/students/${student.id}/progress`)
+        .then(res => {
+          if (mounted) {
+            setDays(res.data.days || [])
+            setStreak(res.data.streak ?? 0)
+            setLongestStreak(res.data.longestStreak ?? 0)
+          }
+        })
+        .catch(() => {})
+    }
+    return () => { mounted = false }
+  }, [student])
+
+  const achievements = calculateAchievements(days, streak, longestStreak)
+  const earnedBadges = achievements.filter(b => b.earned)
 
   // PWA Install Event state
   const [deferredPrompt, setDeferredPrompt] = useState(null)
@@ -279,6 +304,31 @@ export default function StudentLayout({ children }) {
                           <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{val || '—'}</span>
                         </div>
                       ))}
+
+                      {/* Achievements display */}
+                      <div style={{ marginTop: '0.75rem', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '0.75rem' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>
+                          🏆 Achievements ({earnedBadges.length})
+                        </div>
+                        {earnedBadges.length === 0 ? (
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                            Complete days to earn badges!
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.2rem' }}>
+                            {earnedBadges.map(badge => (
+                              <span 
+                                key={badge.id} 
+                                style={{ fontSize: '1.25rem', cursor: 'help' }} 
+                                title={`${badge.title}: ${badge.desc}`}
+                              >
+                                {badge.icon}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
                       <button
                         className="btn btn-ghost btn-sm btn-block"
                         onClick={handleLogoutClick}
