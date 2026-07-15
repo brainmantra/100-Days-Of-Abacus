@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs'
 import pool from '../db.js'
 import { logActivity } from '../utils/logger.js'
 import { signTeacherToken, requireTeacher } from '../middleware/auth.js'
+import { recalculateStreak } from '../utils/streak.js'
 
 const router = Router()
 
@@ -610,6 +611,51 @@ router.post('/responses/:id/grade', requireTeacher, async (req, res) => {
     res.status(500).json({ message: 'Server error.' })
   }
 })
+
+// ── DELETE /api/teachers/students/:id/progress/:dayNum/reset ─────────────
+router.delete('/students/:id/progress/:dayNum/reset', requireTeacher, async (req, res) => {
+  try {
+    const { id: student_id, dayNum } = req.params;
+    const day_number = parseInt(dayNum, 10);
+    
+    // Verify the student belongs to this teacher
+    const { rows: stRows } = await pool.query(
+      `SELECT id FROM students WHERE id = $1 AND teacher_id = $2`,
+      [student_id, req.user.id]
+    );
+    if (stRows.length === 0) {
+      return res.status(403).json({ message: 'Student not found or access denied.' });
+    }
+
+    const { rows: dayRows } = await pool.query(
+      `SELECT xp_earned FROM day_records WHERE student_id = $1 AND day_number = $2`,
+      [student_id, day_number]
+    );
+
+    if (dayRows.length > 0) {
+      const xp_earned = dayRows[0].xp_earned || 0;
+      
+      await pool.query(`DELETE FROM student_responses WHERE student_id = $1 AND day_number = $2`, [student_id, day_number]);
+      await pool.query(`DELETE FROM day_records WHERE student_id = $1 AND day_number = $2`, [student_id, day_number]);
+
+      const { rows: studentRows } = await pool.query(
+        `UPDATE students SET xp_total = GREATEST(0, xp_total - $1) WHERE id = $2 RETURNING registration_date, first_login_date`,
+        [xp_earned, student_id]
+      );
+
+      if (studentRows.length > 0) {
+        const student = studentRows[0];
+        await recalculateStreak(student_id, student.first_login_date || student.registration_date);
+      }
+    }
+    
+    logActivity('teacher', req.user.id, 'reset_paper', `Reset paper for student ${student_id} day ${day_number}`);
+    res.json({ success: true, message: `Day ${day_number} reset successfully.` });
+  } catch (err) {
+    console.error('[reset_day]', err);
+    res.status(500).json({ message: 'Server error resetting day.' });
+  }
+});
 
 export default router
 

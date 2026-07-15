@@ -67,50 +67,21 @@ export default function SectionAttemptPage() {
     sectionSecondsRef.current = sectionSeconds
   }, [sectionSeconds])
 
-  const triggerAutosubmit = async () => {
-    if (dayNum === 0 || submittingCheatingRef.current) return
-    submittingCheatingRef.current = true
-    setTimerRunning(false)
-    
-    toast.error('Anti-cheating triggered: You switched tabs/windows! Your day is autosubmitted.', { duration: 6000 })
-
-    try {
-      // 1. Submit current section
-      const actualSolveTime = responsesRef.current.reduce((sum, r) => sum + (r.time_taken_seconds || 0), 0)
-      await api.post(`/students/${student.id}/progress/${dayNum}/sections/${section}/submit`, {
-        responses: responsesRef.current,
-        timeTakenSeconds: parseFloat(actualSolveTime.toFixed(2)),
-      })
-    } catch (e) {
-      console.error('Cheating submit section error:', e)
-    }
-
-    try {
-      // 2. Force submit full paper
-      await api.post(`/students/${student.id}/progress/${dayNum}/submit`, { force: true })
-    } catch (e) {
-      console.error('Cheating submit paper error:', e)
-    }
-
-    // 3. Redirect to report
-    navigate(`/challenge/day/${dayNum}/report`)
-  }
-
   useEffect(() => {
-    if (phase !== 'attempt' || dayNum === 0) return
-
-    const handleAction = () => {
-      triggerAutosubmit()
+    if (phase !== 'attempt' && phase !== 'done' && phase !== 'submitting') return;
+    try {
+      const data = {
+        currentIndex,
+        responses,
+        formAnswers,
+        currentPageIdx,
+        sectionSeconds
+      };
+      localStorage.setItem(`abacus_autosave_${student?.id}_${dayNum}_${section}`, JSON.stringify(data));
+    } catch (e) {
+      console.error('Autosave error', e);
     }
-
-    document.addEventListener('visibilitychange', handleAction)
-    window.addEventListener('blur', handleAction)
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleAction)
-      window.removeEventListener('blur', handleAction)
-    }
-  }, [phase, dayNum])
+  }, [currentIndex, responses, formAnswers, currentPageIdx, sectionSeconds, phase, student?.id, dayNum, section]);
 
   const questionStartRef = useRef(Date.now())
 
@@ -240,6 +211,25 @@ export default function SectionAttemptPage() {
 
 
         setQuestions(flatQs)
+
+        // Restore from autosave if it exists
+        try {
+          const savedStr = localStorage.getItem(`abacus_autosave_${student?.id}_${dayNum}_${section}`)
+          if (savedStr && !isDemo) {
+            const saved = JSON.parse(savedStr)
+            if ((saved.responses && saved.responses.length > 0) || (saved.formAnswers && Object.keys(saved.formAnswers).length > 0)) {
+              setResponses(saved.responses || [])
+              setFormAnswers(saved.formAnswers || {})
+              setCurrentIndex(saved.currentIndex || 0)
+              setCurrentPageIdx(saved.currentPageIdx || 0)
+              setSectionSeconds(saved.sectionSeconds || 0)
+              toast('Restored your previous progress.', { icon: '🔄', duration: 3000 })
+            }
+          }
+        } catch (e) {
+          console.error('Restore autosave error', e)
+        }
+
         setPhase('countdown')
       } catch (err) {
         toast.error(err.response?.data?.message || 'Could not load questions.')
@@ -594,6 +584,9 @@ export default function SectionAttemptPage() {
 
   const submitSection = async (finalResponses) => {
     setPhase('submitting')
+    try {
+      localStorage.removeItem(`abacus_autosave_${student?.id}_${dayNum}_${section}`)
+    } catch (e) {}
     const actualSolveTime = finalResponses.reduce((sum, r) => sum + (r.time_taken_seconds || 0), 0)
     try {
       const res = await api.post(`/students/${student.id}/progress/${dayNum}/sections/${section}/submit`, {

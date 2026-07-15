@@ -435,7 +435,29 @@ function StudentsTab() {
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span className="day-card__num" style={{ fontSize: '0.9rem' }}>Day {dayNum}</span>
-                      <span className="day-card__emoji" style={{ fontSize: '1rem' }}>{icon}</span>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        {sections.length > 0 && (
+                          <button 
+                            className="btn btn-ghost btn-sm" 
+                            style={{ padding: '0 0.4rem', fontSize: '1rem', color: 'var(--text-muted)' }}
+                            title="Reset Paper"
+                            onClick={async () => {
+                              if (!window.confirm(`Are you sure you want to reset Day ${dayNum} for ${selected.name}? This will delete all answers and XP for this day.`)) return;
+                              try {
+                                await adminApi.delete(`/admin/students/${selected.id}/progress/${dayNum}/reset`);
+                                toast.success(`Day ${dayNum} reset successfully.`);
+                                const res = await adminApi.get(`/admin/students/${selected.id}`);
+                                setSelectedDays(res.data.days || []);
+                              } catch (err) {
+                                toast.error('Failed to reset paper.');
+                              }
+                            }}
+                          >
+                            🔄
+                          </button>
+                        )}
+                        <span className="day-card__emoji" style={{ fontSize: '1rem' }}>{icon}</span>
+                      </div>
                     </div>
                     
                     {sections.length > 0 && (
