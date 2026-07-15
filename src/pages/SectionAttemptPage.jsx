@@ -33,6 +33,7 @@ const isMultiLineRequired = (level, day) => {
 export default function SectionAttemptPage() {
   const { dayNumber, section } = useParams()
   const dayNum = parseInt(dayNumber, 10)
+  const isDemo = dayNum === 0
   const { student, login } = useAuth()
   const navigate = useNavigate()
 
@@ -654,7 +655,6 @@ export default function SectionAttemptPage() {
   if (phase === 'done') {
     const correct = responses.filter(r => r.is_correct).length
     const acc = responses.length > 0 ? Math.round((correct / responses.length) * 100) : 0
-    const isDemo = dayNum === 0
     return (
       <div className="page page-bg-dots" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
         <div className="card animate-pop" style={{ maxWidth: 420, width: '100%', margin: '2rem', textAlign: 'center', padding: '2.5rem' }}>
