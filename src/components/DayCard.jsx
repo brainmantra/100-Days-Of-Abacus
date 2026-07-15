@@ -81,10 +81,14 @@ export default function DayCard({ dayNumber, registrationDate, dayRecord, isDemo
   }
   let _sectionData = {}
   try {
-    _sectionData = typeof dayRecord?.section_data === 'string' ? JSON.parse(dayRecord.section_data) : (dayRecord?.section_data || {})
+    const parsed = typeof dayRecord?.section_data === 'string' ? JSON.parse(dayRecord.section_data) : dayRecord?.section_data
+    _sectionData = parsed || {}
+    if (typeof _sectionData !== 'object' || Array.isArray(_sectionData)) {
+      _sectionData = {}
+    }
   } catch(e) {}
   const allSectionsDone = _expectedSecs.length > 0 &&
-    _expectedSecs.every(s => _sectionData[s]?.status === 'done')
+    _expectedSecs.every(s => _sectionData?.[s]?.status === 'done')
 
   let status = 'future'
   if (dayRecord?.completed || allSectionsDone) {

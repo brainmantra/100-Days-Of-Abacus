@@ -12,6 +12,19 @@
     <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   </head>
   <body>
+    <div id="global-error-overlay" style="display: none; position: fixed; inset: 0; background: rgba(255,0,0,0.9); color: white; z-index: 999999; padding: 2rem; overflow: auto; white-space: pre-wrap; font-family: monospace;"></div>
+    <script>
+      window.addEventListener('error', function(event) {
+        const overlay = document.getElementById('global-error-overlay');
+        overlay.style.display = 'block';
+        overlay.textContent += 'Error: ' + event.message + '\n' + (event.error ? event.error.stack : '') + '\n\n';
+      });
+      window.addEventListener('unhandledrejection', function(event) {
+        const overlay = document.getElementById('global-error-overlay');
+        overlay.style.display = 'block';
+        overlay.textContent += 'Unhandled Promise Rejection: ' + event.reason + '\n' + (event.reason ? event.reason.stack : '') + '\n\n';
+      });
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
