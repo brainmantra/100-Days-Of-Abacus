@@ -8,7 +8,7 @@ import DayCard from '../components/DayCard'
 import toast from 'react-hot-toast'
 
 // Helper component for winding map
-function WindingLevelMap({ days, currentDay, student, dayMap, onBack, defaultDayNum }) {
+function WindingLevelMap({ days, currentDay, student, dayMap, onBack, defaultDayNum, validSections }) {
   const allDays = [0, ...Array.from({ length: 100 }, (_, i) => i + 1)]
   const [selectedDayNum, setSelectedDayNum] = useState(defaultDayNum ?? null)
 
@@ -325,6 +325,7 @@ export default function CoursesPage() {
             student={student} 
             onBack={() => setActiveCourse(null)} 
             defaultDayNum={location.state?.openDemoDay ? 0 : location.state?.openDayNum !== undefined ? location.state.openDayNum : null}
+            validSections={validSections}
           />
       </StudentLayout>
     )
