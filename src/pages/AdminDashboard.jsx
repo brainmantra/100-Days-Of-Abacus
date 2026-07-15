@@ -365,7 +365,7 @@ function StudentsTab() {
 
   if (selected) {
     const completedCount = selectedDays.filter(d => d.completed).length
-    const achievements = calculateAchievements(completedCount, selected.streak, selected.longest_streak)
+    const achievements = calculateAchievements(selectedDays, selected.streak, selected.longest_streak)
     const earnedBadges = achievements.filter(b => b.earned)
 
     return (

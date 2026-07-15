@@ -1569,7 +1569,7 @@ export default function TeacherDashboard() {
         {/* STUDENT PROGRESS */}
         {tab === 'students' && selectedStudent && (() => {
           const completedCount = selectedDays.filter(d => d.completed).length
-          const achievements = calculateAchievements(completedCount, selectedStudent.streak, selectedStudent.longest_streak || selectedStudent.streak)
+          const achievements = calculateAchievements(selectedDays, selectedStudent.streak, selectedStudent.longest_streak || selectedStudent.streak)
           const earnedBadges = achievements.filter(b => b.earned)
 
           return (
