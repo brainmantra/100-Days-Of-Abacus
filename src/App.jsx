@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
+import { Analytics } from '@vercel/analytics/react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import ThemeToggle from './components/ThemeToggle'
 
@@ -90,6 +91,7 @@ export default function App() {
         
         <AppRoutes />
         <ThemeToggle />
+        <Analytics />
       </AuthProvider>
     </BrowserRouter>
   )
