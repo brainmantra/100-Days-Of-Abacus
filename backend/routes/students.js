@@ -770,12 +770,39 @@ router.post('/:id/progress/:dayNumber/submit', async (req, res) => {
     const level = normalizeStudentLevel(student.level) || student.level
     const sections = await getSectionsForLevelAsync(level, dayNumber)
 
-    // Verify all sections are done
-    const allDone = sections.every(sec => sectionData[sec]?.status === 'done')
+    // Filter sections that actually have questions
+    const validSections = []
+    for (const sec of sections) {
+      if (TEACHER_INPUT_SECTIONS.has(sec)) {
+        const tq = await getTeacherQuestion(level, dayNumber, sec)
+        if (!tq || !tq.question) continue
+        
+        let validQs = 0
+        let qs = []
+        if (typeof tq.question === 'string') {
+          try { qs = JSON.parse(tq.question) } catch(e){}
+        } else {
+          qs = tq.question
+        }
+        if (!Array.isArray(qs)) qs = [qs]
+        if (qs.length === 1 && qs[0].questions) qs = qs[0].questions
+        
+        for (const q of qs) {
+          const qText = (q.question || q.question_text || q.questionText || '').trim()
+          const img = (q.image || '').trim()
+          if (qText !== '' || img !== '') validQs++
+        }
+        if (validQs === 0) continue
+      }
+      validSections.push(sec)
+    }
+
+    // Verify all valid sections are done
+    const allDone = validSections.every(sec => sectionData[sec]?.status === 'done')
     if (!allDone) {
       if (force) {
         // Automatically populate remaining sections with 0 marks
-        for (const sec of sections) {
+        for (const sec of validSections) {
           if (sectionData[sec]?.status !== 'done') {
             sectionData[sec] = {
               status: 'done',
@@ -796,7 +823,7 @@ router.post('/:id/progress/:dayNumber/submit', async (req, res) => {
     // Aggregate totals
     let totalMarks = 0, totalXp = 0, totalTime = 0, totalCorrect = 0, totalQs = 0
 
-    for (const sec of sections) {
+    for (const sec of validSections) {
       const sd = sectionData[sec] || {}
       totalMarks += sd.marks || 0
       totalXp += sd.xpEarned || 0

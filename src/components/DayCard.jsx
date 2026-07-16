@@ -9,13 +9,13 @@ const LEVEL_SECTIONS = {
   l1: ['abacus', 'bead_fun', 'activity'],
   l2: ['abacus', 'visual', 'tables'],
   l3: ['abacus', 'visual', 'multiplication', 'two_steps'],
-  l4: ['abacus', 'visual', 'multiplication', 'division', 'form_the_question'],
-  l5: ['abacus', 'visual', 'multiplication', 'division', 'cracking'],
-  l6: ['abacus', 'visual', 'multiplication', 'division', 'bodmas'],
+  l4: ['abacus', 'visual', 'multiplication', 'division'],
+  l5: ['abacus', 'visual', 'multiplication', 'division'],
+  l6: ['abacus', 'visual', 'multiplication', 'division'],
   l7: ['abacus', 'visual', 'multiplication', 'division', 'two_steps'],
-  l8: ['abacus', 'visual', 'multiplication', 'division', 'cracking'],
-  alumni: ['abacus', 'visual', 'multiplication', 'division', 'cracking'],
-  gm: ['abacus', 'visual', 'multiplication', 'division', 'cracking'],
+  l8: ['abacus', 'visual', 'multiplication', 'division'],
+  alumni: ['abacus'],
+  gm: ['abacus'],
 }
 
 const SECTION_LABELS = {

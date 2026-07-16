@@ -98,7 +98,7 @@ export default function SectionAttemptPage() {
             if (e.response?.status === 409) {
               // Already opened and done — redirect back
               toast.error(e.response.data.message || 'This section is not available.')
-              navigate(isDemo ? '/courses' : `/challenge/day/${dayNum}/sections`, isDemo ? { state: { openDemoDay: true } } : undefined)
+              navigate('/courses', { state: isDemo ? { openDemoDay: true } : { openDayNum: dayNum } })
               return
             }
           }
@@ -109,7 +109,7 @@ export default function SectionAttemptPage() {
 
         if (res.data.teacherNotReady) {
           toast("Today's question isn't ready yet.")
-          navigate(isDemo ? '/courses' : `/challenge/day/${dayNum}/sections`, isDemo ? { state: { openDemoDay: true } } : undefined)
+          navigate('/courses', { state: isDemo ? { openDemoDay: true } : { openDayNum: dayNum } })
           return
         }
 
@@ -233,7 +233,7 @@ export default function SectionAttemptPage() {
         setPhase('countdown')
       } catch (err) {
         toast.error(err.response?.data?.message || 'Could not load questions.')
-        navigate(isDemo ? '/courses' : `/challenge/day/${dayNum}/sections`, isDemo ? { state: { openDemoDay: true } } : undefined)
+        navigate('/courses', { state: isDemo ? { openDemoDay: true } : { openDayNum: dayNum } })
       }
     }
     init()
