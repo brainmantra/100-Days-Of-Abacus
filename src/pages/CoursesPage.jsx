@@ -33,11 +33,9 @@ function WindingLevelMap({ days, currentDay, student, dayMap, onBack, defaultDay
       try {
         const sd = typeof record.section_data === 'string' ? JSON.parse(record.section_data) : record.section_data;
         const secKeys = Object.keys(sd);
-        // Assuming a minimum of 3 sections for a day to be considered fully attempted
         if (secKeys.length >= 1 && secKeys.every(k => sd[k].status === 'done')) {
           // For Demo Day, we can mark it as completed if they did the sections
-          // For regular days, we still require 'completed' flag from full submit, but this handles edge cases
-          if (dayNum === 0 || secKeys.length >= 3) return 'completed'
+          if (dayNum === 0) return 'completed'
         }
       } catch (e) {}
     }

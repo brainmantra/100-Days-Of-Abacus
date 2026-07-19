@@ -414,9 +414,15 @@ router.get('/:id/progress/:dayNumber/sections', async (req, res) => {
         const qs = await selectQuestionsForDay(level, sec, dayNumber)
         let validQs = 0
         for (const q of qs) {
-          const qText = (q.question || q.question_text || q.questionText || '').trim()
+          let hasContent = false
+          try {
+            const raw = typeof q.question === 'string' ? JSON.parse(q.question) : q.question
+            if (raw && typeof raw === 'object' && Object.keys(raw).length > 0) hasContent = true
+          } catch(e) {}
+          
+          const qText = typeof q.question === 'string' ? q.question.trim() : (q.question_text || q.questionText || '').trim()
           const img = (q.image || '').trim()
-          if (qText !== '' || img !== '') validQs++
+          if (qText !== '' || img !== '' || hasContent) validQs++
         }
         countVal = validQs
       }
